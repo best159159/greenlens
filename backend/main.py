@@ -29,9 +29,27 @@ client = OpenAI(api_key=api_key) if api_key else None
 # ==============================
 # โหลด Tree Database
 # ==============================
-TREE_DB_PATH = os.path.join(os.path.dirname(__file__), "tree_database.json")
-with open(TREE_DB_PATH, "r", encoding="utf-8") as f:
-    TREE_DATABASE = json.load(f)
+# ลองหา DB ในหลาย Path
+base_dir = os.path.dirname(__file__)
+db_paths = [
+    os.path.join(base_dir, "tree_database.json"),           # Local (same folder)
+    os.path.join(base_dir, "../api/tree_database.json"),    # Vercel api folder
+    os.path.join(base_dir, "../backend/tree_database.json") # Fallback
+]
+
+TREE_DB_PATH = None
+for path in db_paths:
+    if os.path.exists(path):
+        TREE_DB_PATH = path
+        break
+
+if not TREE_DB_PATH:
+    # Fallback default path if nothing found (prevent crash but empty DB)
+    print("Warning: tree_database.json not found!")
+    TREE_DATABASE = {"economic": [], "edible": [], "conservation": []}
+else:
+    with open(TREE_DB_PATH, "r", encoding="utf-8") as f:
+        TREE_DATABASE = json.load(f)
 
 
 # ==============================
