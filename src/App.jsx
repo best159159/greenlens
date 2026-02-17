@@ -31,8 +31,13 @@ function App() {
             })
 
             if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.detail || 'Analysis failed')
+                const text = await response.text()
+                try {
+                    const errorData = JSON.parse(text)
+                    throw new Error(errorData.detail || 'Analysis failed')
+                } catch {
+                    throw new Error(`Server Error (${response.status}): ${text.substring(0, 100)}`)
+                }
             }
 
             const result = await response.json()
