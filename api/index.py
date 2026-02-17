@@ -417,12 +417,12 @@ def build_tree_list_prompt():
 # API Endpoints
 # ==============================
 
-@app.get("/")
+@app.get("/api")
 def read_root():
     return {"message": "GreenLens AI Backend (GPT-5.2 + Scientific Model) is running!"}
 
 
-@app.post("/analyze")
+@app.post("/api/analyze")
 async def analyze_image(file: UploadFile = File(...), province: str = Form(...)):
     if not client:
         raise HTTPException(status_code=500, detail="OpenAI API Key not found.")
