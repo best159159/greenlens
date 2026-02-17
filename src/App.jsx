@@ -20,7 +20,8 @@ function App() {
             formData.append('file', imageFile)
             formData.append('province', province)
 
-            const response = await fetch('http://localhost:8000/analyze', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api/analyze'
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 body: formData,
             })
