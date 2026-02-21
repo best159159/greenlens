@@ -9,3 +9,5 @@
 - 📈 **CO₂ Tracking**: ติดตามการดูดซับ CO₂
 - 🎯 **SDG Alignment**: สนับสนุน UN SDG 15
 
+Platform ของเรา https://greenlens-psi.vercel.app/
+
