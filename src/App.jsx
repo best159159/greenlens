@@ -11,7 +11,7 @@ function App() {
     const [analysisResult, setAnalysisResult] = useState(null)
     const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-    const handleAnalysis = async (imageFile, province) => {
+    const handleAnalysis = async (imageFile, province, latitude, longitude) => {
         setIsAnalyzing(true)
         setAnalysisResult(null)
 
@@ -19,6 +19,8 @@ function App() {
             const formData = new FormData()
             formData.append('file', imageFile)
             formData.append('province', province)
+            if (latitude) formData.append('latitude', latitude)
+            if (longitude) formData.append('longitude', longitude)
 
             const isDev = import.meta.env.DEV
             const apiUrl = isDev
@@ -93,13 +95,13 @@ function App() {
                             </div>
                             <div className="glass-card p-6 rounded-xl hover:scale-105 transition-transform">
                                 <div className="text-5xl mb-4">🎯</div>
-                                <h3 className="text-xl font-bold mb-2">แม่นยำสูง</h3>
-                                <p className="text-slate-600">ความแม่นยำ 95%+</p>
+                                <h3 className="text-xl font-bold mb-2">ครอบคลุมทั่วไทย</h3>
+                                <p className="text-slate-600">รองรับ 77 จังหวัด</p>
                             </div>
                             <div className="glass-card p-6 rounded-xl hover:scale-105 transition-transform">
                                 <div className="text-5xl mb-4">🔬</div>
-                                <h3 className="text-xl font-bold mb-2">โมเดลวิทยาศาสตร์</h3>
-                                <p className="text-slate-600">คำนวณจากงานวิจัยจริง</p>
+                                <h3 className="text-xl font-bold mb-2">โมเดลประมาณการ</h3>
+                                <p className="text-slate-600">สมมติฐานโปร่งใส ตรวจสอบได้</p>
                             </div>
                         </div>
                     </div>

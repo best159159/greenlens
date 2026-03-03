@@ -41,8 +41,8 @@ const Hero = () => {
                 </p>
 
                 <p className="text-lg text-white/80 mb-12 max-w-2xl mx-auto">
-                    ใช้เทคโนโลยีปัญญาประดิษฐ์วิเคราะห์สภาพพื้นที่ แนะนำพันธุ์ไม้ที่เหมาะสม
-                    และคาดการณ์ผลกระทบต่อสิ่งแวดล้อม
+                    ระบบสนับสนุนการตัดสินใจ (DSS) ที่ใช้ AI วิเคราะห์ลักษณะพื้นที่
+                    แนะนำพันธุ์ไม้ที่เหมาะสม และประมาณการผลกระทบด้านสิ่งแวดล้อม
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -62,16 +62,16 @@ const Hero = () => {
                 {/* Stats */}
                 <div className="mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto">
                     <div className="text-center">
-                        <div className="text-4xl font-bold text-white mb-2">10K+</div>
-                        <div className="text-white/80 text-sm">พื้นที่วิเคราะห์</div>
+                        <div className="text-4xl font-bold text-white mb-2">30+</div>
+                        <div className="text-white/80 text-sm">พันธุ์ไม้ในฐานข้อมูล</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl font-bold text-white mb-2">95%</div>
-                        <div className="text-white/80 text-sm">ความแม่นยำ</div>
+                        <div className="text-4xl font-bold text-white mb-2">77</div>
+                        <div className="text-white/80 text-sm">จังหวัดทั่วไทย</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl font-bold text-white mb-2">50K</div>
-                        <div className="text-white/80 text-sm">ต้นไม้แนะนำ</div>
+                        <div className="text-4xl font-bold text-white mb-2">DSS</div>
+                        <div className="text-white/80 text-sm">Decision Support System</div>
                     </div>
                 </div>
             </div>

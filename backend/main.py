@@ -39,73 +39,174 @@ except ImportError:
 
 
 # ==============================
-# Scientific Calculation Functions
+# Estimation Model Functions
+# ----- Planning-Level DSS (Decision Support System) -----
+# All outputs are estimates intended to support planning decisions.
+# They are NOT substitutes for field-based environmental measurements.
 # ==============================
 
 def calc_canopy_coverage(diameter_m):
-    """คำนวณพื้นที่ร่มเงาจากเส้นผ่านศูนย์กลางทรงพุ่ม (วงกลม)
-    สูตร: A = π × (d/2)²
+    """Projected canopy area from crown diameter (circular approximation).
+    Formula: A = π × (d/2)²
+    Assumption: Crown is approximately circular at maturity.
+    Limitation: Actual crown shape varies by species and pruning.
     """
     radius = diameter_m / 2
     return round(math.pi * radius ** 2, 1)
 
 
-def calc_temperature_reduction(canopy_coverage_m2):
-    """คำนวณอุณหภูมิที่ลดลงจากพื้นที่ร่มเงา
-    สูตรประมาณ: ทุกๆ 30 m² ของร่มเงา ลดอุณหภูมิได้ ~0.5°C (อ้างอิง urban heat island research)
-    ค่าสูงสุดไม่เกิน 5°C
+def calc_temperature_reduction_range(canopy_coverage_m2, tree_data=None, site_area=None):
+    """Estimate localized microclimate cooling potential (pedestrian-level air temperature).
+
+    Methodology:
+      - Computes canopy fraction (canopy area / reference site area).
+      - Applies a conservative cooling coefficient range derived from
+        urban forestry research in tropical/subtropical climates.
+      - Adjusts by an evapotranspiration factor based on tree water use.
+
+    Conservative Parameter Ranges:
+      - Low-bound cooling coefficient: 0.8 °C per 100% canopy cover
+      - High-bound cooling coefficient: 2.0 °C per 100% canopy cover
+      These are intentionally conservative for academic defensibility.
+
+    Output: [min_estimate, max_estimate] in °C
+
+    Scope & Limitations:
+      - Applies ONLY to the localized microclimate directly beneath
+        and immediately downwind of the canopy, NOT to city-wide temperatures.
+      - Assumes daytime conditions with moderate wind (< 3 m/s).
+      - Does not account for surrounding built environment thermal mass,
+        anthropogenic heat sources, or seasonal humidity variation.
+      - Values represent mature-canopy steady-state conditions.
     """
-    reduction = (canopy_coverage_m2 / 30) * 0.5
-    return round(min(reduction, 5.0), 1)
+    # Reference site area (nominal 100 m² per tree for realistic proportion)
+    nominal_area = site_area if site_area else max(canopy_coverage_m2, 100.0)
+    canopy_fraction = min(canopy_coverage_m2 / nominal_area, 1.0)
+
+    # Evapotranspiration modifier (E-factor)
+    # Trees with low water requirements tend to have lower transpiration rates,
+    # reducing the latent heat cooling component.
+    e_factor = 1.0
+    if tree_data:
+        water_req = tree_data.get("water_requirement", "medium")
+        if water_req == "low":
+            e_factor = 0.75
+        elif water_req == "high":
+            e_factor = 1.1  # Higher transpiration = slightly more cooling
+
+    # Conservative cooling coefficient range for tropical urban microclimate
+    # (Pedestrian-level ambient air, NOT land surface temperature)
+    low_coeff = 0.8   # °C reduction at 100% canopy cover (conservative)
+    high_coeff = 2.0   # °C reduction at 100% canopy cover (favorable conditions)
+
+    min_reduction = round(canopy_fraction * low_coeff * e_factor, 2)
+    max_reduction = round(canopy_fraction * high_coeff * e_factor, 2)
+
+    # Floor values to avoid reporting implausibly small numbers
+    min_reduction = round(max(0.1, min_reduction), 1)
+    max_reduction = round(max(0.3, max_reduction), 1)
+    if min_reduction >= max_reduction:
+        max_reduction = round(min_reduction + 0.2, 1)
+
+    return [min_reduction, max_reduction]
+
+
+def calc_co2_range(annual_co2_midpoint):
+    """Convert a single CO₂ absorption midpoint into an estimation range.
+
+    Rationale:
+      CO₂ sequestration rates in the tree database represent estimated annual
+      averages for a MATURE tree under favorable growing conditions. Actual
+      rates vary significantly due to:
+        - Growth phase (young trees absorb less; peak absorption at mid-life)
+        - Urban stress factors (soil compaction, limited root space, pollution)
+        - Seasonal variation in photosynthetic activity
+        - Pruning, disease, and maintenance practices
+
+    Method:
+      - Low estimate: 70% of database midpoint (accounts for urban stress)
+      - Mid estimate: database midpoint (favorable mature-tree conditions)
+      - High estimate: 115% of database midpoint (optimal conditions)
+
+    Output: {"low": float, "mid": float, "high": float}
+    """
+    return {
+        "low": round(annual_co2_midpoint * 0.70, 1),
+        "mid": round(annual_co2_midpoint, 1),
+        "high": round(annual_co2_midpoint * 1.15, 1)
+    }
 
 
 def calc_green_potential_score(tree_data):
-    """คำนวณ Green Potential Score จากหลายปัจจัย (0-100)
-    สูตร:
-      - CO₂ absorption weight: 30%
-      - Canopy coverage weight: 25%
-      - Drought tolerance weight: 15%
-      - Lifespan weight: 15%
-      - Growth rate weight: 15%
+    """Composite Green Potential Score (0–100) using weighted multi-criteria analysis.
+
+    Scoring Formula:
+      GPS = (S_co2 × W1) + (S_canopy × W2) + (S_drought × W3) + (S_lifespan × W4) + (S_growth × W5)
+
+    Component Weights (W) and Justification:
+      W1 = 0.30 (CO₂ absorption)  – Primary environmental benefit metric
+      W2 = 0.25 (Canopy coverage) – Directly affects microclimate cooling & shade
+      W3 = 0.15 (Drought tolerance) – Survivability in tropical dry seasons
+      W4 = 0.15 (Lifespan) – Long-term carbon storage & ecosystem value
+      W5 = 0.15 (Growth rate) – Time-to-benefit for urban planning
+
+    Normalization:
+      Each sub-score is normalized to 0–100 using the maximum value
+      observed in the tree database as the reference ceiling.
+
+    Limitation:
+      Weights are assigned based on general environmental planning priorities.
+      Different use cases (e.g., biodiversity vs. carbon) may warrant
+      different weight distributions.
     """
     co2 = tree_data["co2_absorption_kg_per_year"]
     canopy_d = tree_data["average_canopy_diameter_m"]
     lifespan = tree_data["lifespan_years"]
 
-    # Normalize CO₂ (max ~40 kg/yr ในฐานข้อมูล)
-    co2_score = min(co2 / 40 * 100, 100)
-    
+    # Sub-score normalization (reference ceilings from database)
+    co2_score = min(co2 / 40 * 100, 100)         # Ref: ~40 kg/yr max in DB
+    canopy_score = min(canopy_d / 15 * 100, 100)  # Ref: ~15m diameter max in DB
+    lifespan_score = min(lifespan / 200 * 100, 100)  # Ref: 200 years max in DB
 
-    # Normalize canopy (max ~15m diameter)
-    canopy_score = min(canopy_d / 15 * 100, 100)
-
-    # Drought tolerance
+    # Categorical sub-scores
     drought_map = {"high": 100, "medium": 60, "low": 30}
-    drought_score = drought_map.get(tree_data["drought_tolerance"], 50)
+    drought_score = drought_map.get(tree_data.get("drought_tolerance", "medium"), 50)
 
-    # Lifespan (max 200 years)
-    lifespan_score = min(lifespan / 200 * 100, 100)
-
-    # Growth rate
     growth_map = {"fast": 90, "medium": 60, "slow": 35}
-    growth_score = growth_map.get(tree_data["growth_rate"], 50)
+    growth_score = growth_map.get(tree_data.get("growth_rate", "medium"), 50)
 
+    # Weighted summation
+    W1, W2, W3, W4, W5 = 0.30, 0.25, 0.15, 0.15, 0.15
     score = (
-        co2_score * 0.30 +
-        canopy_score * 0.25 +
-        drought_score * 0.15 +
-        lifespan_score * 0.15 +
-        growth_score * 0.15
+        co2_score * W1 +
+        canopy_score * W2 +
+        drought_score * W3 +
+        lifespan_score * W4 +
+        growth_score * W5
     )
-    return round(score)
+
+    return {
+        "total": round(score),
+        "breakdown": {
+            "co2_absorption": {"score": round(co2_score, 1), "weight": W1},
+            "canopy_coverage": {"score": round(canopy_score, 1), "weight": W2},
+            "drought_tolerance": {"score": round(drought_score, 1), "weight": W3},
+            "lifespan": {"score": round(lifespan_score, 1), "weight": W4},
+            "growth_rate": {"score": round(growth_score, 1), "weight": W5}
+        }
+    }
 
 
 def calc_monthly_co2(annual_co2, peak_months):
-    """คำนวณการดูดซับ CO₂ รายเดือนจากค่ารายปี + เดือนที่เจริญเติบโตสูงสุด
-    สูตร:
-      - เดือนที่อยู่ใน peak_months จะได้ค่าสูงกว่า (~1.5x ของค่าเฉลี่ย)
-      - เดือนที่ไม่อยู่ใน peak_months จะได้ค่าต่ำกว่า (~0.6x ของค่าเฉลี่ย)
-      - ผลรวม 12 เดือน = annual_co2
+    """Distribute annual CO₂ absorption across 12 months with seasonal weighting.
+
+    Method:
+      Peak-growth months receive ~1.5× the baseline monthly rate.
+      Off-peak months receive ~0.6× the baseline monthly rate.
+      The total across 12 months equals the annual estimate.
+
+    Assumption: Seasonal variation follows a simplified bimodal pattern
+    typical of tropical monsoon climates.
     """
     peak_count = len(peak_months)
     off_peak_count = 12 - peak_count
@@ -113,9 +214,6 @@ def calc_monthly_co2(annual_co2, peak_months):
     if peak_count == 0 or off_peak_count == 0:
         return [round(annual_co2 / 12, 1)] * 12
 
-    # สร้างสมการ: peak_count * peak_val + off_peak_count * off_val = annual_co2
-    # โดย peak_val = 1.5 * base, off_val = 0.6 * base
-    # → base * (peak_count * 1.5 + off_peak_count * 0.6) = annual_co2
     base = annual_co2 / (peak_count * 1.5 + off_peak_count * 0.6)
     peak_val = round(base * 1.5, 1)
     off_val = round(base * 0.6, 1)
@@ -127,7 +225,7 @@ def calc_monthly_co2(annual_co2, peak_months):
         else:
             monthly.append(off_val)
 
-    # ปรับให้ผลรวมตรงพอดี (แก้ rounding error)
+    # Correct rounding drift
     diff = round(annual_co2 - sum(monthly), 1)
     if diff != 0:
         monthly[peak_months[0] - 1] = round(monthly[peak_months[0] - 1] + diff, 1)
@@ -136,10 +234,11 @@ def calc_monthly_co2(annual_co2, peak_months):
 
 
 def compute_scientific_data(tree_data):
-    """รวมการคำนวณทั้งหมดเป็นก้อนเดียว"""
+    """Aggregate all estimation model outputs for a single tree species."""
     canopy_area = calc_canopy_coverage(tree_data["average_canopy_diameter_m"])
-    temp_reduction = calc_temperature_reduction(canopy_area)
+    temp_reduction = calc_temperature_reduction_range(canopy_area, tree_data)
     green_score = calc_green_potential_score(tree_data)
+    co2_range = calc_co2_range(tree_data["co2_absorption_kg_per_year"])
     monthly_co2 = calc_monthly_co2(
         tree_data["co2_absorption_kg_per_year"],
         tree_data.get("peak_growth_months", [5, 6, 7, 8])
@@ -149,15 +248,18 @@ def compute_scientific_data(tree_data):
         "scientific_name": tree_data["scientific_name"],
         "english_name": tree_data["english_name"],
         "co2_absorption_kg_per_year": tree_data["co2_absorption_kg_per_year"],
+        "co2_absorption_range": co2_range,
         "canopy_coverage_m2": canopy_area,
         "temperature_reduction_celsius": temp_reduction,
-        "green_potential_score": green_score,
+        "green_potential_score": green_score["total"],
+        "green_score_breakdown": green_score["breakdown"],
         "monthly_co2_data": monthly_co2,
         "growth_rate": tree_data["growth_rate"],
         "max_height_m": tree_data["max_height_m"],
         "water_requirement": tree_data["water_requirement"],
         "drought_tolerance": tree_data["drought_tolerance"],
-        "lifespan_years": tree_data["lifespan_years"]
+        "lifespan_years": tree_data["lifespan_years"],
+        "data_note": "Values represent estimated mature-tree performance under favorable tropical conditions."
     }
 
 
@@ -203,11 +305,11 @@ def build_tree_list_prompt():
 
 @app.get("/")
 def read_root():
-    return {"message": "GreenLens AI Backend (GPT-5.2 + Scientific Model) is running!"}
+    return {"message": "GreenLens AI — Environmental Decision Support System is running."}
 
 
 @app.post("/analyze")
-async def analyze_image(file: UploadFile = File(...), province: str = Form(...)):
+async def analyze_image(file: UploadFile = File(...), province: str = Form(...), latitude: float = Form(None), longitude: float = Form(None)):
     if not client:
         raise HTTPException(status_code=500, detail="OpenAI API Key not found. Please check .env file.")
 
@@ -216,96 +318,142 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...))
     encoded_image = base64.b64encode(contents).decode("utf-8")
     media_type = file.content_type
 
-    # 2. สร้างรายชื่อต้นไม้จาก database
-    tree_list_prompt = build_tree_list_prompt()
+    # 2. Fetch Open-Meteo Data (Optional)
+    climate_context_text = ""
+    if latitude is not None and longitude is not None:
+        try:
+            import urllib.request
+            import json as libjson
+            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m"
+            req = urllib.request.Request(weather_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status == 200:
+                    data = libjson.loads(response.read().decode())
+                    w = data.get("current", {})
+                    t = w.get("temperature_2m", "-")
+                    h = w.get("relative_humidity_2m", "-")
+                    p = w.get("precipitation", "-")
+                    ws = w.get("wind_speed_10m", "-")
+                    climate_context_text = f"""
+ข้อมูลภาพรวมภูมิอากาศปัจจุบัน (จาก Open-Meteo พิกัด {latitude}, {longitude}):
+- อุณหภูมิ: {t} °C
+- ความชื้นสัมพัทธ์: {h} %
+- ปริมาณน้ำฝน: {p} mm
+- ความเร็วลม: {ws} km/h
 
-    # 3. Construct prompt
-    prompt = f"""คุณคือผู้เชี่ยวชาญด้านการใช้ประโยชน์ที่ดินเพื่อสิ่งแวดล้อม และที่ปรึกษาด้านวนเกษตร
+คำเตือน: ข้อมูลสภาพอากาศให้ใช้เป็นข้อมูลแวดล้อมเท่านั้น (contextual background) ห้ามใช้ประเมินความเหมาะสมทางการเกษตรแบบตรงตัว ห้ามใช้คัดเลือกพันธุ์ไม้ และห้ามอ้างถึงในการเปลี่ยนแปลงการคำนวณด้านวิทยาศาสตร์ของระบบหลัก
+"""
+        except Exception as e:
+            print("Error fetching Open-Meteo data:", e)
 
-บทบาทของคุณคือการทำการวิเคราะห์เชิงคุณภาพ (QUALITATIVE) เท่านั้น
-คุณต้อง **ห้ามสร้างค่าตัวเลขทางวิทยาศาสตร์** เช่น ปริมาณการดูดซับ CO2, อุณหภูมิที่ลดลง, ค่า pH หรือสถิติด้านสิ่งแวดล้อมที่วัดได้ใดๆ
+    # 2.5 Fetch Climate Profile (5-Year Historical)
+    climate_profile = None
+    if latitude is not None and longitude is not None:
+        try:
+            import datetime
+            import urllib.request
+            import json as libjson
+            end_date = datetime.date.today()
+            start_date = end_date.replace(year=end_date.year - 5)
+            archive_url = f"https://archive-api.open-meteo.com/v1/archive?latitude={latitude}&longitude={longitude}&start_date={start_date.isoformat()}&end_date={end_date.isoformat()}&daily=temperature_2m_mean,precipitation_sum&timezone=auto"
+            req_arch = urllib.request.Request(archive_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req_arch, timeout=5) as response_arch:
+                if response_arch.status == 200:
+                    data_arch = libjson.loads(response_arch.read().decode())
+                    daily = data_arch.get("daily", {})
+                    temps = daily.get("temperature_2m_mean", [])
+                    precips = daily.get("precipitation_sum", [])
+                    
+                    valid_temps = [t for t in temps if t is not None]
+                    valid_precips = [p for p in precips if p is not None]
+                    
+                    avg_temp = sum(valid_temps) / len(valid_temps) if valid_temps else 0
+                    total_precip_5y = sum(valid_precips)
+                    avg_annual_precip = total_precip_5y / 5.0 if valid_precips else 0
+                    
+                    monthly_precip = {}
+                    dates = daily.get("time", [])
+                    for i, date_str in enumerate(dates):
+                        if precips[i] is not None:
+                            ym = date_str[:7]
+                            monthly_precip[ym] = monthly_precip.get(ym, 0) + precips[i]
+                            
+                    dry_months = sum(1 for p in monthly_precip.values() if p < 60)
+                    avg_dry_months = dry_months / 5.0
+                    
+                    climate_profile = {
+                        "avg_annual_temperature_c": round(avg_temp, 1),
+                        "avg_annual_precipitation_mm": round(avg_annual_precip, 1),
+                        "avg_dry_months_per_year": round(avg_dry_months, 1),
+                        "data_period": f"{start_date.isoformat()} to {end_date.isoformat()}",
+                        "note": "Climate profile is contextual only and does not influence deterministic impact models."
+                    }
+                    
+                    # Compute Climate Risk Index
+                    tr = min(max(((avg_temp - 25.0) / 10.0) * 100.0, 0.0), 100.0)
+                    dr = min((avg_dry_months / 6.0) * 100.0, 100.0)
+                    if avg_annual_precip < 1000:
+                        rr = 100.0
+                    elif avg_annual_precip > 2000:
+                        rr = 0.0
+                    else:
+                        rr = 100.0 - (((avg_annual_precip - 1000.0) / 1000.0) * 100.0)
+                        
+                    cri = (tr * 0.4) + (dr * 0.35) + (rr * 0.25)
+                    cri = min(max(round(cri), 0), 100)
+                    
+                    if cri <= 30:
+                        cl_level = "Low Climate Stress"
+                    elif cri <= 60:
+                        cl_level = "Moderate Seasonal Stress"
+                    elif cri <= 80:
+                        cl_level = "High Climate Stress"
+                    else:
+                        cl_level = "Severe Environmental Stress"
+                        
+                    climate_profile["climate_risk_index"] = cri
+                    climate_profile["climate_risk_level"] = cl_level
+        except Exception as e:
+            print("Error fetching Open-Meteo archive data:", e)
 
-ระบบจะคำนวณผลกระทบด้านสิ่งแวดล้อมเป็นตัวเลขแยกต่างหาก โดยใช้โมเดลทางวิทยาศาสตร์ที่ตรวจสอบแล้ว
+    climate_profile_text = f"ข้อมูล Climate Profile 5 ปีย้อนหลัง:\n{json.dumps(climate_profile, ensure_ascii=False)}" if climate_profile else "ไม่มีข้อมูล Historical 5 ปี"
 
-คุณจะได้รับข้อมูล:
-1. รูปภาพของพื้นที่ดิน
-2. ข้อมูลสถานที่: จังหวัด {province}, ประเทศไทย
+    prompt = f"""คุณคือที่ปรึกษาระบบ Decision Support System (DSS) สำหรับการจัดการพื้นที่สีเขียว
 
-{tree_list_prompt}
+หน้าที่ของคุณคือการวิเคราะห์ "บริบทของพื้นที่และสภาพแวดล้อมเบื้องต้น" (Contextual Analysis) จากรูปภาพและข้อมูลสภาพอากาศ ณ ปัจจุบันเท่านั้น
 
-⚠️ สำคัญมาก: คุณต้องเลือกต้นไม้จากรายชื่อข้างบนเท่านั้น ห้ามแนะนำต้นไม้อื่นนอกรายชื่อนี้เด็ดขาด
-⚠️ ชื่อต้นไม้ใน tree_name ต้องตรงกับรายชื่อด้านบนเป๊ะๆ (เช่น "สักทอง", "มะม่วง", "ต้นจามจุรี")
+กฎที่ต้องปฏิบัติตามอย่างเคร่งครัด:
+1. ข้อมูลสภาพอากาศ (อุณหภูมิ, ความชื้น, ลม) ให้ใช้บรรยายเป็น "ข้อมูลแวดล้อมเฉพาะกิจหน้างาน" (Short-term contextual layer) เท่านั้น
+2. ห้ามทึกทักหรือสรุปสภาพภูมิอากาศระยะยาว (Long-term climate history) ของระดับจังหวัดจากข้อมูลสภาพอากาศปัจจุบัน
+3. ห้ามแนะนำชื่อต้นไม้ ห้ามคัดเลือกสายพันธุ์ และห้ามระบุความเหมาะสมในการเจริญเติบโตของพืช
+4. ห้ามคำนวณผลกระทบทางสิ่งแวดล้อมหรือประเมินค่าตัวเลขใดๆ (ระบบ Backend มีโมเดลคำนวณแยกต่างหาก)
 
-งานของคุณ:
+ข้อมูลที่ได้รับ:
+- รูปภาพของพื้นที่
+- ข้อมูลสถานที่: จังหวัด {province}, ประเทศไทย
+{climate_context_text}
+{climate_profile_text}
+- แผนที่การเติบโต: ประเมินการเจริญเติบโตที่ projection_year = 1, 5, 10, 20 ปี
 
-1. วิเคราะห์ลักษณะทางกายภาพของพื้นที่:
-   - เนื้อดิน (ทราย/เหนียว/ร่วน/ผสม/ไม่แน่ใจ)
-   - แสงแดด (แดดจัด/แดดบางส่วน/ร่มเงา)
-   - ความหนาแน่นของพืชพรรณ (เบาบาง/ปานกลาง/หนาแน่น)
-   - สัญญาณการพังทลาย ความแห้งแล้ง หรือการกักเก็บน้ำ
+งานของคุณ (วิเคราะห์และตอบกลับเป็น JSON เท่านั้น โครงสร้างตามด้านล่าง ห้ามเพิ่มคีย์อื่น):
+1. surface_context: บรรยายสภาพพื้นผิวที่เห็นจากภาพแบบคร่าวๆ (เช่น ลานคอนกรีต, ที่ดินรกร้าง, พื้นที่ดินทราย)
+2. vegetation_density: ประเมินความหนาแน่นของพืชพรรณเดิมในภาพ (ตัวอย่าง: เบาบาง, ปานกลาง, หนาแน่น, ไม่มี, ไม่ทราบ)
+3. climate_context_summary: อธิบายข้อมูลสภาพอากาศที่ได้รับแบบบรรยายสั้นๆ (อิงตามตัวเลขที่ได้ ห้ามคาดเดาอนาคต)
+4. environmental_notes: ข้อสังเกตสั้นๆ เกี่ยวกับสภาพแวดล้อม ณ วันนี้
+5. confidence_level: ระดับความมั่นใจในการประเมินภาพ (high / medium / low)
+6. climate_risk_analysis: บทวิเคราะห์ความเสี่ยงด้านสภาพอากาศในระยะยาว (Qualitative Only ดึงจาก profile)
+7. long_term_growth_advisory: คำแนะนำเชิงคุณภาพสำหรับการเติบโตของพืชพรรณระยะยาว (Do NOT select tree species. Do NOT compute scores. Provide qualitative long-term environmental advisory only.)
 
-2. ตีความสภาพภูมิอากาศของจังหวัด{province} และอธิบาย:
-   - ความเหมาะสมสำหรับการทำวนเกษตร
-   - ข้อจำกัดที่อาจเกิดขึ้น (เช่น ความเสี่ยงแล้ง น้ำท่วม พายุ)
-   - สภาพระบบนิเวศทั่วไป
-
-3. เลือกต้นไม้ 3 ต้น จากรายชื่อที่กำหนด (ประเภทละ 1 ต้น):
-   - 1 ไม้เศรษฐกิจ (economic)
-   - 1 ไม้กินได้ (edible)
-   - 1 ไม้อนุรักษ์ (conservation)
-
-สำหรับแต่ละต้นไม้ที่เลือก ให้ระบุ:
-   - ชื่อ (ต้องตรงกับรายชื่อข้างบน)
-   - เหตุผลที่เหมาะกับพื้นที่นี้
-   - ข้อควรระวังในการดูแล
-   - ประโยชน์ด้านสิ่งแวดล้อม (เชิงคุณภาพเท่านั้น)
-
-รูปแบบการตอบกลับที่เคร่งครัด:
-ตอบกลับเป็น JSON ที่ถูกต้องเท่านั้น (ห้ามมีข้อความอื่นนอกเหนือจาก JSON):
-
+รูปแบบ JSON (ตอบกลับแค่คีย์เหล่านี้เท่านั้น ห้ามมี markdown หรือข้อความอื่น):
 {{
-  "land_analysis": {{
-    "soil_texture": "<ทราย/เหนียว/ร่วน/ผสม/ไม่แน่ใจ>",
-    "sunlight": "<แดดจัด/แดดบางส่วน/ร่มเงา>",
-    "vegetation_density": "<เบาบาง/ปานกลาง/หนาแน่น>",
-    "observations": "<อธิบายสิ่งที่มองเห็นได้>"
-  }},
-  "climate_interpretation": {{
-    "overall_suitability": "<อธิบายความเหมาะสมของพื้นที่>",
-    "risks": "<ความเสี่ยงด้านภูมิอากาศ>",
-    "ecological_notes": "<ข้อสังเกตเพิ่มเติม>"
-  }},
-  "recommendations": [
-    {{
-      "category": "economic",
-      "tree_name": "<ชื่อจากรายชื่อที่กำหนด>",
-      "reason": "<เหตุผลที่เหมาะกับพื้นที่>",
-      "care_notes": "<คำแนะนำการดูแล>",
-      "environmental_benefits": "<ประโยชน์เชิงคุณภาพ>"
-    }},
-    {{
-      "category": "edible",
-      "tree_name": "<ชื่อจากรายชื่อที่กำหนด>",
-      "reason": "<เหตุผลที่เหมาะกับพื้นที่>",
-      "care_notes": "<คำแนะนำการดูแล>",
-      "environmental_benefits": "<ประโยชน์เชิงคุณภาพ>"
-    }},
-    {{
-      "category": "conservation",
-      "tree_name": "<ชื่อจากรายชื่อที่กำหนด>",
-      "reason": "<เหตุผลที่เหมาะกับพื้นที่>",
-      "care_notes": "<คำแนะนำการดูแล>",
-      "environmental_benefits": "<ประโยชน์เชิงคุณภาพ>"
-    }}
-  ],
-  "confidence_level": "<สูง/ปานกลาง/ต่ำ พร้อมคำอธิบาย>"
+  "surface_context": "...",
+  "vegetation_density": "...",
+  "climate_context_summary": "...",
+  "environmental_notes": "...",
+  "confidence_level": "...",
+  "climate_risk_analysis": "...",
+  "long_term_growth_advisory": "..."
 }}
-
-กฎเกณฑ์:
-- ห้ามสร้างสถิติด้านสิ่งแวดล้อมเป็นตัวเลข
-- ต้องเลือกต้นไม้จากรายชื่อที่กำหนดให้เท่านั้น
-- ชื่อต้นไม้ต้องตรงเป๊ะกับรายชื่อ
-- ตอบเป็นภาษาไทยทั้งหมด
 """
 
     try:
@@ -340,52 +488,85 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...))
         ai_result = json.loads(response_text)
 
         # ==============================
-        # 6. Scientific Model Layer
+        # 6. Scientific Model Layer & Deterministic Tree Selection
         # ==============================
+        recommendations = []
         total_co2 = 0
         total_canopy = 0
-        total_temp_reduction = 0
+        total_temp_reduction_min = 0.0
+        total_temp_reduction_max = 0.0
 
-        for rec in ai_result.get("recommendations", []):
-            tree_name = rec.get("tree_name", "")
-            category = rec.get("category", "")
-
-            # ค้นหาข้อมูลจาก tree_database.json
-            tree_data = lookup_tree(tree_name, category)
-
-            if tree_data:
-                # คำนวณค่าวิทยาศาสตร์ทั้งหมด
+        for category in ["economic", "edible", "conservation"]:
+            best_tree = None
+            best_score = -1
+            best_sci = None
+            for tree_data in TREE_DATABASE.get(category, []):
                 sci = compute_scientific_data(tree_data)
-                rec["scientific_data"] = sci
+                score = sci["green_potential_score"]
+                if score > best_score:
+                    best_score = score
+                    best_tree = tree_data
+                    best_sci = sci
+            
+            if best_tree:
+                drought = best_tree.get("drought_tolerance", "medium")
+                drought_th = {"high": "สูง (ทนทานได้ดี)", "medium": "ปานกลาง", "low": "ต่ำ (ต้องการน้ำสม่ำเสมอ)"}.get(drought, "ปานกลาง")
+                
+                reason_text = f"ระบบวิเคราะห์คณิตศาสตร์ให้คะแนนความเหมาะสม (GPS) สูงสุดที่ {best_score} คะแนน โดยอิงจากความสามารถในการทนแล้งระดับ{drought_th} และเข้ากับสภาพอากาศทั่วไป"
+                ben_text = f"เมื่อโตเต็มวัยจะผลิตร่มเงากว่า {best_sci['canopy_coverage_m2']} ตร.ม. ช่วยลดอุณหภูมิรอบข้างได้สูงสุด {best_sci['temperature_reduction_celsius'][1]}°C และดูดซับ CO₂ ได้ {best_sci['co2_absorption_kg_per_year']} กก./ปี"
 
-                total_co2 += sci["co2_absorption_kg_per_year"]
-                total_canopy += sci["canopy_coverage_m2"]
-                total_temp_reduction += sci["temperature_reduction_celsius"]
-            else:
-                rec["scientific_data"] = None
-                print(f"⚠️ ไม่พบข้อมูลต้นไม้: {tree_name} ในหมวด {category}")
+                recommendations.append({
+                    "category": category,
+                    "tree_name": best_tree["name"],
+                    "reason": reason_text,
+                    "care_notes": best_tree.get("notes", "ดูแลตามความต้องการพื้นฐานตามสายพันธุ์"),
+                    "environmental_benefits": ben_text,
+                    "scientific_data": best_sci
+                })
+                total_co2 += best_sci["co2_absorption_kg_per_year"]
+                total_canopy += best_sci["canopy_coverage_m2"]
+                total_temp_reduction_min += best_sci["temperature_reduction_celsius"][0]
+                total_temp_reduction_max += best_sci["temperature_reduction_celsius"][1]
 
-        # 7. Environmental Impact Summary
+        ai_result["recommendations"] = recommendations
+
+        # 7. Environmental Impact Summary (Planning-Level Estimates)
         tree_count = len([r for r in ai_result["recommendations"] if r.get("scientific_data")])
         ai_result["environmental_impact"] = {
             "total_co2_absorption": {
                 "value": round(total_co2, 1),
                 "unit": "kg/ปี",
-                "description": "ศักยภาพการดูดซับ CO₂ รวมทุกต้น"
+                "description": "ค่าประมาณการดูดซับ CO₂ รวม (ต้นไม้โตเต็มวัย สภาวะเอื้ออำนวย)"
             },
             "average_temperature_reduction": {
-                "value": round(total_temp_reduction / max(tree_count, 1), 1),
+                "value": [
+                    round(total_temp_reduction_min / max(tree_count, 1), 1),
+                    round(total_temp_reduction_max / max(tree_count, 1), 1)
+                ],
                 "unit": "°C",
-                "description": "อุณหภูมิที่คาดว่าจะลดลงโดยเฉลี่ย"
+                "description": "ช่วงประมาณการลดอุณหภูมิจุลภาคใต้ร่มเงา (ไม่ใช่อุณหภูมิระดับเมือง)"
             },
             "total_canopy_coverage": {
                 "value": round(total_canopy, 1),
                 "unit": "m²",
-                "description": "พื้นที่ร่มเงารวม"
+                "description": "ค่าประมาณพื้นที่ร่มเงาที่ทรงพุ่มโตเต็มที่"
             }
         }
 
+        # 8. Model Limitations Metadata
+        ai_result["model_limitations"] = {
+            "scope": "Planning-level Decision Support System (DSS). Not a substitute for field measurements.",
+            "temperature_model": "Applies to localized pedestrian-level microclimate only. Does not predict city-wide temperature changes.",
+            "co2_model": "CO₂ values represent mature-tree estimates under favorable conditions. Young trees absorb significantly less. Urban stress factors may reduce actual rates by 20–40%.",
+            "soil_analysis": "Soil texture is inferred from visual surface characteristics in the uploaded image. This is a preliminary observation, not a laboratory soil analysis.",
+            "general": "All numerical outputs are estimation ranges based on simplified parametric models. Environmental variability (wind, humidity, surrounding land use) is not individually modeled."
+        }
+
         ai_result["province"] = province
+        ai_result["planting_plan_summary"] = None
+        
+        if climate_profile:
+            ai_result["climate_profile"] = climate_profile
 
         return ai_result
 
@@ -393,6 +574,132 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...))
         print(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI Analysis failed: {str(e)}")
 
+
+@app.post("/calculate_plan")
+async def calculate_plan(req: dict):
+    plan = req.get("plantingPlan", [])
+    proj_year = req.get("projection_year")
+    scenario_mode = req.get("scenario_mode", "baseline")
+    # If not provided, assume mature mapping (e.g. year 20)
+    if proj_year not in [1, 5, 10, 20]:
+        proj_year = 20
+        
+    GROWTH_SCALES = {
+        "fast": {1: 0.25, 5: 0.70, 10: 1.0, 20: 1.0},
+        "medium": {1: 0.15, 5: 0.50, 10: 0.85, 20: 1.0},
+        "slow": {1: 0.10, 5: 0.35, 10: 0.65, 20: 1.0}
+    }
+
+    if not plan:
+        return {"planting_plan_summary": None}
+        
+    drought_map = {"high": 100, "medium": 60, "low": 30}
+    growth_map = {"fast": 90, "medium": 60, "slow": 35}
+
+    def get_metrics(yr, is_plus2C):
+        total_co2_low = total_co2_mid = total_co2_high = 0.0
+        total_canopy = 0.0
+        total_trees = 0
+        total_drought_score = 0.0
+        total_lifespan_score = 0.0
+        total_growth_score = 0.0
+
+        for item in plan:
+            qty = max(int(item.get("quantity", 1)), 1)
+            total_trees += qty
+            
+            tree_node = lookup_tree(item["tree_name"], item["category"])
+            growth_rate = tree_node.get("growth_rate", "medium") if tree_node else "medium"
+            scale = GROWTH_SCALES.get(growth_rate, GROWTH_SCALES["medium"]).get(yr, 1.0)
+            
+            co2 = item.get("co2_range", {})
+            total_co2_low += float(co2.get("low", 0)) * qty * scale
+            total_co2_mid += float(co2.get("mid", 0)) * qty * scale
+            total_co2_high += float(co2.get("high", 0)) * qty * scale
+            
+            total_canopy += float(item.get("canopy_area_m2", 0)) * qty * scale
+            
+            if tree_node:
+                d = tree_node.get("drought_tolerance", "medium")
+                d_score = drought_map.get(d, 50)
+                l = float(tree_node.get("lifespan_years", 50))
+                l_score = min((l / 200.0) * 100, 100)
+                g = tree_node.get("growth_rate", "medium")
+                g_score = growth_map.get(g, 50)
+            else:
+                d_score = 50
+                l_score = 50
+                g_score = 50
+            
+            total_drought_score += d_score * qty
+            total_lifespan_score += l_score * qty
+            total_growth_score += g_score * qty
+            
+        avg_drought = total_drought_score / total_trees if total_trees > 0 else 0
+        avg_lifespan = total_lifespan_score / total_trees if total_trees > 0 else 0
+        avg_growth = total_growth_score / total_trees if total_trees > 0 else 0
+        
+        # Require site area provided from frontend, map to minimum 1.0 to avoid division by 0
+        plan_site_area = max(float(req.get("site_area") or 100.0), 1.0)
+        cooling_range = calc_temperature_reduction_range(total_canopy, tree_data=None, site_area=plan_site_area)
+        
+        max_co2_plan = 40.0 * max(total_trees, 1)
+        co2_score = min((total_co2_mid / max_co2_plan) * 100, 100)
+        
+        max_canopy_plan = 15.0 * max(total_trees, 1)
+        avg_canopy_m2 = total_canopy / max(total_trees, 1) if total_trees > 0 else 0
+        avg_canopy_d = 2 * math.sqrt(avg_canopy_m2 / math.pi) if avg_canopy_m2 > 0 else 0
+        canopy_score = min((avg_canopy_d * total_trees) / max_canopy_plan * 100, 100)
+
+        W1, W2, W3, W4, W5 = 0.30, 0.25, 0.15, 0.15, 0.15
+        
+        # Ecosystem Stress Mode applies environmental stress factors
+        # to simulate harsher seasonal conditions for resilience testing.
+        # This is not a predictive climate model.
+        if is_plus2C:
+            cooling_range = [max(0.0, round(c * 0.9, 1)) for c in cooling_range]
+            # Shift weights to heavily emphasize drought tolerance for resilience testing
+            W1 -= 0.05
+            W2 -= 0.05
+            W3 += 0.10
+
+        plan_gps = min((co2_score * W1 + canopy_score * W2 + avg_drought * W3 + avg_lifespan * W4 + avg_growth * W5), 100.0)
+        canopy_ratio = min(total_canopy / plan_site_area, 1.0)
+        
+        return {
+            "projection_year": yr,
+            "scaled_total_co2_range": {
+                "low": round(total_co2_low, 1),
+                "mid": round(total_co2_mid, 1),
+                "high": round(total_co2_high, 1)
+            },
+            "scaled_total_canopy_area_m2": round(total_canopy, 1),
+            "scaled_temperature_range": cooling_range,
+            "scaled_plan_gps_score": round(plan_gps),
+            "total_tree_count": total_trees,
+            "canopy_density_ratio": round(canopy_ratio, 2),
+            "canopy_density_percent": round(canopy_ratio * 100)
+        }
+        
+    is_plus2C = (scenario_mode == "plus2C")
+    active_summary = get_metrics(proj_year, is_plus2C)
+    
+    timeline = []
+    for y in [1, 5, 10, 20]:
+        m = get_metrics(y, is_plus2C)
+        timeline.append({
+            "year": y,
+            "co2": m["scaled_total_co2_range"]["mid"],
+            "cooling": m["scaled_temperature_range"][1]
+        })
+        
+    active_summary["impact_timeline"] = timeline
+    
+    return {
+        "planting_plan_summary": active_summary,
+        "baseline": get_metrics(proj_year, False),
+        "plus2C": get_metrics(proj_year, True)
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

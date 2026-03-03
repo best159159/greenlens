@@ -1,6 +1,6 @@
 const Recommendation = ({ data }) => {
     // data คือ analysisResult ทั้งก้อน
-    const { climate_interpretation, confidence_level } = data
+    const { environmental_notes, climate_context_summary, confidence_level } = data
 
     return (
         <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
@@ -29,10 +29,10 @@ const Recommendation = ({ data }) => {
                                 <span>🌍</span> ภาพรวมระบบนิเวศ
                             </h3>
                             <p className="text-slate-700 leading-relaxed text-lg">
-                                {climate_interpretation.overall_suitability}
+                                {climate_context_summary || 'กำลังวิเคราะห์ข้อมูลสภาพแวดล้อม...'}
                             </p>
                             <p className="mt-4 text-slate-600 italic border-t border-indigo-100 pt-4">
-                                " {climate_interpretation.ecological_notes} "
+                                " {environmental_notes || '-'} "
                             </p>
                         </div>
                     </div>
@@ -51,7 +51,7 @@ const Recommendation = ({ data }) => {
                                 if (navigator.share) {
                                     navigator.share({
                                         title: 'GreenLens AI Analysis',
-                                        text: `ดูผลวิเคราะห์ที่ดินของฉัน! เหมาะสำหรับปลูกพืช: ${climate_interpretation.overall_suitability}`,
+                                        text: `ดูผลวิเคราะห์ที่ดินของฉัน! ภาพรวม: ${climate_context_summary || ''}`,
                                         url: window.location.href
                                     }).catch(console.error);
                                 } else {
@@ -66,17 +66,15 @@ const Recommendation = ({ data }) => {
                     </div>
 
                     {/* Warning Box */}
-                    {climate_interpretation.risks && (
-                        <div className="mt-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-xl flex items-start gap-3">
-                            <span className="text-2xl">⚠️</span>
-                            <div>
-                                <h4 className="font-bold text-amber-900">ข้อควรระวัง</h4>
-                                <p className="text-amber-800 text-sm mt-1">
-                                    {climate_interpretation.risks}
-                                </p>
-                            </div>
+                    <div className="mt-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-xl flex items-start gap-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div>
+                            <h4 className="font-bold text-amber-900">ข้อจำกัดของระบบประเมิน</h4>
+                            <p className="text-amber-800 text-sm mt-1">
+                                {data.model_limitations?.scope || 'ระบบนี้ใช้วิเคราะห์เบื้องต้นเท่านั้น ไม่ใช่การศึกษาดินทางวิทยาศาสตร์ หรือวิเคราะห์ข้อมูลเชิงลึกระยะยาว'}
+                            </p>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </section>
