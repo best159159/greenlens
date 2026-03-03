@@ -728,7 +728,7 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 async def calculate_plan(req: dict):
     plan = req.get("plantingPlan", [])
     proj_year = req.get("projection_year")
-    scenario_mode = req.get("scenario_mode", "baseline")
+    ecosystem_stress_mode = req.get("ecosystem_stress_mode", False)
     # If not provided, assume mature mapping (e.g. year 20)
     if proj_year not in [1, 5, 10, 20]:
         proj_year = 20
@@ -745,7 +745,7 @@ async def calculate_plan(req: dict):
     drought_map = {"high": 100, "medium": 60, "low": 30}
     growth_map = {"fast": 90, "medium": 60, "slow": 35}
 
-    def get_metrics(yr, is_plus2C):
+    def get_metrics(yr, stress_active):
         total_co2_low = total_co2_mid = total_co2_high = 0.0
         total_canopy = 0.0
         total_trees = 0
@@ -771,6 +771,8 @@ async def calculate_plan(req: dict):
             if tree_node:
                 d = tree_node.get("drought_tolerance", "medium")
                 d_score = drought_map.get(d, 50)
+                if stress_active and tree_node.get("water_requirement") == "high":
+                    d_score -= (d_score * 0.10)
                 l = float(tree_node.get("lifespan_years", 50))
                 l_score = min((l / 200.0) * 100, 100)
                 g = tree_node.get("growth_rate", "medium")
@@ -805,12 +807,12 @@ async def calculate_plan(req: dict):
         # Ecosystem Stress Mode applies environmental stress factors
         # to simulate harsher seasonal conditions for resilience testing.
         # This is not a predictive climate model.
-        if is_plus2C:
-            cooling_range = [max(0.0, round(c * 0.9, 1)) for c in cooling_range]
+        if stress_active:
+            cooling_range = [max(0.0, round(c * 0.9, 2)) for c in cooling_range]
             # Shift weights to heavily emphasize drought tolerance for resilience testing
-            W1 -= 0.05
-            W2 -= 0.05
-            W3 += 0.10
+            W1 = 0.25
+            W2 = 0.20
+            W3 = 0.25
 
         plan_gps = min((co2_score * W1 + canopy_score * W2 + avg_drought * W3 + avg_lifespan * W4 + avg_growth * W5), 100.0)
         canopy_ratio = min(total_canopy / plan_site_area, 1.0)
@@ -827,15 +829,15 @@ async def calculate_plan(req: dict):
             "scaled_plan_gps_score": round(plan_gps),
             "total_tree_count": total_trees,
             "canopy_density_ratio": round(canopy_ratio, 2),
-            "canopy_density_percent": round(canopy_ratio * 100)
+            "canopy_density_percent": round(canopy_ratio * 100),
+            "stress_mode_active": stress_active
         }
         
-    is_plus2C = (scenario_mode == "plus2C")
-    active_summary = get_metrics(proj_year, is_plus2C)
+    active_summary = get_metrics(proj_year, ecosystem_stress_mode)
     
     timeline = []
     for y in [1, 5, 10, 20]:
-        m = get_metrics(y, is_plus2C)
+        m = get_metrics(y, ecosystem_stress_mode)
         timeline.append({
             "year": y,
             "co2": m["scaled_total_co2_range"]["mid"],
@@ -846,6 +848,5 @@ async def calculate_plan(req: dict):
     
     return {
         "planting_plan_summary": active_summary,
-        "baseline": get_metrics(proj_year, False),
-        "plus2C": get_metrics(proj_year, True)
+        "stress_mode_active": ecosystem_stress_mode
     }

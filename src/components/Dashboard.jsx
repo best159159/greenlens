@@ -32,7 +32,7 @@ const Dashboard = ({ data }) => {
     const [planSummary, setPlanSummary] = useState(null)
     const [isCalculating, setIsCalculating] = useState(false)
     const [projectionYear, setProjectionYear] = useState(20)
-    const [scenarioMode, setScenarioMode] = useState("baseline")
+    const [stressMode, setStressMode] = useState(false)
     const [siteArea, setSiteArea] = useState(1000)
 
     useEffect(() => {
@@ -55,7 +55,7 @@ const Dashboard = ({ data }) => {
                 const res = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ plantingPlan, projection_year: projectionYear, scenario_mode: scenarioMode, site_area: siteArea })
+                    body: JSON.stringify({ plantingPlan, projection_year: projectionYear, ecosystem_stress_mode: stressMode, site_area: siteArea })
                 })
                 if (res.ok) {
                     const responseData = await res.json()
@@ -70,7 +70,7 @@ const Dashboard = ({ data }) => {
 
         const timeoutId = setTimeout(() => fetchPlanSummary(), 300) // debounce API call
         return () => clearTimeout(timeoutId)
-    }, [plantingPlan, projectionYear, scenarioMode, siteArea])
+    }, [plantingPlan, projectionYear, stressMode, siteArea])
 
     const addToPlan = (tree, sci) => {
         const tree_id = `${tree.category}-${tree.tree_name}`
@@ -565,9 +565,30 @@ const Dashboard = ({ data }) => {
                                 กำลังคำนวณ...
                             </div>
                         )}
-                        <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                            <span>📋</span> แผนปลูกจริง (Planting Plan Builder)
-                        </h3>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 border-b border-eco-green-100 pb-4">
+                            <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                <span>📋</span> แผนปลูกจริง (Planting Plan Builder)
+                            </h3>
+                            <div className="flex items-center gap-3 bg-amber-50/50 px-4 py-2 rounded-xl border border-amber-100 hover:bg-amber-50 transition-colors">
+                                <label htmlFor="stressModeToggle" className="text-sm font-bold text-amber-800 cursor-pointer">
+                                    Ecosystem Stress Mode
+                                    <span className="block text-[10px] text-amber-600 font-medium">(Resilience Test)</span>
+                                </label>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="stressModeToggle" checked={stressMode} onChange={(e) => setStressMode(e.target.checked)} className="sr-only peer" />
+                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {stressMode && (
+                            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 animate-fade-in shadow-sm">
+                                <span className="text-xl">⚠️</span>
+                                <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                                    Stress Mode simulates harsher seasonal conditions. Values reflect resilience testing only.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="grid md:grid-cols-2 gap-8 items-start">
                             {/* Selected Trees List */}
@@ -632,7 +653,7 @@ const Dashboard = ({ data }) => {
                                     </div>
 
                                     {planSummary ? (
-                                        <div className="space-y-4">
+                                        <div className={`space-y-4 transition-opacity duration-300 ${isCalculating ? 'opacity-50' : 'opacity-100'}`}>
                                             {/* Canopy Density Bar & Site Area Input */}
                                             <div className="mb-6">
                                                 <div className="flex items-center justify-between mb-2">
