@@ -54,19 +54,75 @@ body {
 }
 
 @media print {
+    @page {
+        size: A4 portrait;
+        margin: 1.2cm;
+    }
 
+    body {
+        background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-size: 11pt !important;
+        color: #1e293b !important;
+    }
+
+    /* -----------------------------------------------------------------
+       Force Tailwind desktop breakpoints
+       (A4 print width is ~680px, which usually triggers mobile layout)
+       ----------------------------------------------------------------- */
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        display: grid !important;
+    }
+
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        display: grid !important;
+    }
+
+    .lg\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        display: grid !important;
+    }
+
+    .md\:col-span-2 {
+        grid-column: span 2 / span 2 !important;
+    }
+
+    .md\:flex-row {
+        flex-direction: row !important;
+        display: flex !important;
+    }
+
+    .md\:items-center {
+        align-items: center !important;
+    }
+
+    .gap-6 {
+        gap: 1rem !important;
+    }
+
+    .gap-8 {
+        gap: 1.5rem !important;
+    }
+
+    /* -----------------------------------------------------------------
+       Hide all unnecessary elements for reports
+       ----------------------------------------------------------------- */
     .no-print,
     nav,
     #upload-section,
     footer,
     #features,
     #contact,
-    #hero {
+    button,
+    .btn-primary,
+    .btn-secondary,
+    #hero,
+    .print\:hidden,
+    .animate-spin {
         display: none !important;
-    }
-
-    body {
-        background: white !important;
     }
 
     #dashboard-results {
@@ -74,8 +130,168 @@ body {
         padding-top: 0 !important;
     }
 
+    /* -----------------------------------------------------------------
+       Report Card Styles - Clean, no shadows, distinct borders
+       ----------------------------------------------------------------- */
     .glass-card {
         box-shadow: none !important;
-        border: 1px solid #ccc !important;
+        background: white !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        break-inside: avoid;
+        margin-bottom: 20px !important;
+        padding: 20px !important;
+    }
+
+    /* Remove gradients to make it look professional */
+    .bg-gradient-to-r,
+    .bg-gradient-to-b,
+    .bg-gradient-to-br {
+        background: none !important;
+    }
+
+    .gradient-text {
+        background: none !important;
+        -webkit-text-fill-color: initial !important;
+        color: #0f172a !important;
+        /* solid dark */
+    }
+
+    /* -----------------------------------------------------------------
+       Specific Backgrounds / Colors (Forces colors on PDF)
+       ----------------------------------------------------------------- */
+    .bg-eco-green-500,
+    .bg-eco-green-600,
+    .from-eco-green-500,
+    .from-emerald-400 {
+        background-color: #22c55e !important;
+        color: white !important;
+    }
+
+    .bg-eco-blue-500,
+    .bg-eco-blue-600,
+    .to-eco-blue-600 {
+        background-color: #3b82f6 !important;
+        color: white !important;
+    }
+
+    .bg-emerald-500,
+    .bg-emerald-600 {
+        background-color: #10b981 !important;
+        color: white !important;
+    }
+
+    .bg-eco-green-50 {
+        background-color: #f0fdf4 !important;
+        border: 1px solid #bbf7d0 !important;
+    }
+
+    .bg-eco-blue-50 {
+        background-color: #eff6ff !important;
+        border: 1px solid #bfdbfe !important;
+    }
+
+    .bg-emerald-50 {
+        background-color: #ecfdf5 !important;
+        border: 1px solid #a7f3d0 !important;
+    }
+
+    .bg-amber-50 {
+        background-color: #fffbeb !important;
+        border: 1px solid #fde68a !important;
+    }
+
+    .bg-indigo-50 {
+        background-color: #eef2ff !important;
+        border: 1px solid #c7d2fe !important;
+    }
+
+    .bg-slate-50 {
+        background-color: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .bg-amber-100 {
+        background-color: #fef3c7 !important;
+        color: #92400e !important;
+    }
+
+    .bg-green-100 {
+        background-color: #dcfce3 !important;
+        color: #166534 !important;
+    }
+
+    .bg-blue-100 {
+        background-color: #dbeafe !important;
+        color: #1e40af !important;
+    }
+
+    .bg-emerald-100 {
+        background-color: #d1fae5 !important;
+        color: #065f46 !important;
+    }
+
+    .text-eco-green-600 {
+        color: #16a34a !important;
+    }
+
+    .text-eco-blue-600 {
+        color: #2563eb !important;
+    }
+
+    .text-emerald-600 {
+        color: #059669 !important;
+    }
+
+    /* -----------------------------------------------------------------
+       Typography
+       ----------------------------------------------------------------- */
+    h2 {
+        font-size: 20pt !important;
+        border-bottom: 2px solid #22c55e;
+        padding-bottom: 8px;
+        margin-bottom: 16px !important;
+    }
+
+    h3 {
+        font-size: 16pt !important;
+        margin-bottom: 12px !important;
+    }
+
+    h4 {
+        font-size: 13pt !important;
+        margin-bottom: 8px !important;
+    }
+
+    p {
+        font-size: 10.5pt !important;
+        line-height: 1.5 !important;
+    }
+
+    /* -----------------------------------------------------------------
+       Charts & Components
+       ----------------------------------------------------------------- */
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: 250px !important;
+        object-fit: contain;
+    }
+
+    .rounded-full {
+        border-radius: 9999px !important;
+    }
+
+    .overflow-hidden {
+        overflow: hidden !important;
+    }
+
+    .text-5xl,
+    .text-4xl {
+        font-size: 24pt !important;
+    }
+
+    .text-3xl {
+        font-size: 20pt !important;
     }
 }

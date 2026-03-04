@@ -1,6 +1,16 @@
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+
 const Hero = () => {
-    const scrollToUpload = () => {
-        document.getElementById('upload-section').scrollIntoView({ behavior: 'smooth' })
+    const navigate = useNavigate()
+    const { currentUser } = useAuth()
+
+    const handleStartClick = () => {
+        if (currentUser) {
+            navigate('/analyze')
+        } else {
+            navigate('/login')
+        }
     }
 
     return (
@@ -47,7 +57,7 @@ const Hero = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <button
-                        onClick={scrollToUpload}
+                        onClick={handleStartClick}
                         className="btn-primary group"
                     >
                         เริ่มวิเคราะห์

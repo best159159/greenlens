@@ -298,6 +298,42 @@ def build_tree_list_prompt():
     lines.append("ไม้อนุรักษ์ (conservation): " + ", ".join(names["conservation"]))
     return "\n".join(lines)
 
+def get_region_for_province(province_name):
+    """Maps a Thai province name to its region."""
+    province_regions = {
+        # Northern
+        "เชียงราย": "เหนือ", "เชียงใหม่": "เหนือ", "น่าน": "เหนือ", "พะเยา": "เหนือ",
+        "แพร่": "เหนือ", "แม่ฮ่องสอน": "เหนือ", "ลำปาง": "เหนือ", "ลำพูน": "เหนือ",
+        "อุตรดิตถ์": "เหนือ",
+        # Northeastern (Isan)
+        "กาฬสินธุ์": "ตะวันออกเฉียงเหนือ", "ขอนแก่น": "ตะวันออกเฉียงเหนือ", "ชัยภูมิ": "ตะวันออกเฉียงเหนือ",
+        "นครพนม": "ตะวันออกเฉียงเหนือ", "นครราชสีมา": "ตะวันออกเฉียงเหนือ", "บึงกาฬ": "ตะวันออกเฉียงเหนือ",
+        "บุรีรัมย์": "ตะวันออกเฉียงเหนือ", "มหาสารคาม": "ตะวันออกเฉียงเหนือ", "มุกดาหาร": "ตะวันออกเฉียงเหนือ",
+        "ยโสธร": "ตะวันออกเฉียงเหนือ", "ร้อยเอ็ด": "ตะวันออกเฉียงเหนือ", "เลย": "ตะวันออกเฉียงเหนือ",
+        "ศรีสะเกษ": "ตะวันออกเฉียงเหนือ", "สกลนคร": "ตะวันออกเฉียงเหนือ", "สุรินทร์": "ตะวันออกเฉียงเหนือ",
+        "หนองคาย": "ตะวันออกเฉียงเหนือ", "หนองบัวลำภู": "ตะวันออกเฉียงเหนือ", "อุดรธานี": "ตะวันออกเฉียงเหนือ",
+        "อุบลราชธานี": "ตะวันออกเฉียงเหนือ", "อำนาจเจริญ": "ตะวันออกเฉียงเหนือ",
+        # Central
+        "กรุงเทพมหานคร": "กลาง", "กำแพงเพชร": "กลาง", "ชัยนาท": "กลาง", "นครนายก": "กลาง",
+        "นครปฐม": "กลาง", "นครสวรรค์": "กลาง", "นนทบุรี": "กลาง", "ปทุมธานี": "กลาง",
+        "พระนครศรีอยุธยา": "กลาง", "พิจิตร": "กลาง", "พิษณุโลก": "กลาง", "เพชรบูรณ์": "กลาง",
+        "ลพบุรี": "กลาง", "สมุทรปราการ": "กลาง", "สมุทรสงคราม": "กลาง", "สมุทรสาคร": "กลาง",
+        "สระบุรี": "กลาง", "สิงห์บุรี": "กลาง", "สุโขทัย": "กลาง", "สุพรรณบุรี": "กลาง",
+        "อ่างทอง": "กลาง", "อุทัยธานี": "กลาง",
+        # Eastern
+        "จันทบุรี": "ตะวันออก", "ฉะเชิงเทรา": "ตะวันออก", "ชลบุรี": "ตะวันออก", "ตราด": "ตะวันออก",
+        "ปราจีนบุรี": "ตะวันออก", "ระยอง": "ตะวันออก", "สระแก้ว": "ตะวันออก",
+        # Western
+        "กาญจนบุรี": "ตะวันตก", "ตาก": "ตะวันตก", "ประจวบคีรีขันธ์": "ตะวันตก", "เพชรบุรี": "ตะวันตก",
+        "ราชบุรี": "ตะวันตก",
+        # Southern
+        "กระบี่": "ใต้", "ชุมพร": "ใต้", "ตรัง": "ใต้", "นครศรีธรรมราช": "ใต้",
+        "นราธิวาส": "ใต้", "ปัตตานี": "ใต้", "พังงา": "ใต้", "พัทลุง": "ใต้",
+        "ภูเก็ต": "ใต้", "ยะลา": "ใต้", "ระนอง": "ใต้", "สงขลา": "ใต้",
+        "สตูล": "ใต้", "สุราษฎร์ธานี": "ใต้"
+    }
+    return province_regions.get(province_name, "ไม่ทราบภาค")
+
 
 # ==============================
 # API Endpoints
@@ -488,7 +524,7 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
         ai_result = json.loads(response_text)
 
         # ==============================
-        # 6. Scientific Model Layer & Deterministic Tree Selection
+        # 6. Scientific Model Layer & Deterministic Context-Aware Tree Selection
         # ==============================
         recommendations = []
         total_co2 = 0
@@ -496,24 +532,70 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
         total_temp_reduction_min = 0.0
         total_temp_reduction_max = 0.0
 
+        region = get_region_for_province(province)
+        
+        # Analyze surface context for soil type hints
+        surface_lower = ai_result.get("surface_context", "").lower()
+        detected_soil = []
+        if "ทราย" in surface_lower: detected_soil.append("ทราย")
+        if "เหนียว" in surface_lower: detected_soil.append("เหนียว")
+        if "ร่วน" in surface_lower or "ดินทั่วไป" in surface_lower: detected_soil.append("ร่วน")
+        
+        # Climate constraints
+        precip = climate_profile.get("avg_annual_precipitation_mm", 1200) if climate_profile else 1200
+        temp = climate_profile.get("avg_annual_temperature_c", 28) if climate_profile else 28
+
         for category in ["economic", "edible", "conservation"]:
             best_tree = None
             best_score = -1
             best_sci = None
+            
             for tree_data in TREE_DATABASE.get(category, []):
                 sci = compute_scientific_data(tree_data)
-                score = sci["green_potential_score"]
-                if score > best_score:
-                    best_score = score
+                base_score = sci["green_potential_score"]
+                ranking_score = float(base_score)
+                
+                # 1. ภูมิภาค (Region exact match multiplier)
+                suitable_reg = tree_data.get("suitable_regions", [])
+                if suitable_reg:
+                    if "ทุกภาค" in suitable_reg:
+                        ranking_score *= 1.05
+                    elif region in suitable_reg:
+                        ranking_score *= 1.30  # Strong native region bonus
+                    else:
+                        ranking_score *= 0.50  # Heavy penalty for non-native region
+                
+                # 2. ความเหมาะสมของดินจากภาพ (Soil Match)
+                suitable_soils = tree_data.get("suitable_soil_types", [])
+                if detected_soil and suitable_soils:
+                    if any(s in suitable_soils for s in detected_soil):
+                        ranking_score *= 1.25  # Genuinely matches the observed soil logic
+                
+                # 3. จัดคู่สภาพอากาศเชิงพื้นที่จริงๆ (Precipitation & Water Req)
+                water_req = tree_data.get("water_requirement", "medium")
+                drought_tol = tree_data.get("drought_tolerance", "medium")
+                
+                if precip < 1100:  # Dry area
+                    if drought_tol == "high": ranking_score *= 1.20
+                    elif drought_tol == "low": ranking_score *= 0.60
+                elif precip > 1800: # Wet area
+                    if water_req == "high": ranking_score *= 1.20
+                    elif drought_tol == "high": ranking_score *= 0.80 # Overwatered risk
+                else: # Moderate area
+                    if water_req == "medium": ranking_score *= 1.10
+                
+                # Pick the absolute best match deterministically (no random)
+                if ranking_score > best_score:
+                    best_score = ranking_score
                     best_tree = tree_data
                     best_sci = sci
             
             if best_tree:
                 drought = best_tree.get("drought_tolerance", "medium")
-                drought_th = {"high": "สูง (ทนทานได้ดี)", "medium": "ปานกลาง", "low": "ต่ำ (ต้องการน้ำสม่ำเสมอ)"}.get(drought, "ปานกลาง")
+                drought_th = {"high": "ทนทานสูง", "medium": "ปานกลาง", "low": "ต่ำ (ต้องการน้ำ)"}.get(drought, "ปานกลาง")
                 
-                reason_text = f"ระบบวิเคราะห์คณิตศาสตร์ให้คะแนนความเหมาะสม (GPS) สูงสุดที่ {best_score} คะแนน โดยอิงจากความสามารถในการทนแล้งระดับ{drought_th} และเข้ากับสภาพอากาศทั่วไป"
-                ben_text = f"เมื่อโตเต็มวัยจะผลิตร่มเงากว่า {best_sci['canopy_coverage_m2']} ตร.ม. ช่วยลดอุณหภูมิรอบข้างได้สูงสุด {best_sci['temperature_reduction_celsius'][1]}°C และดูดซับ CO₂ ได้ {best_sci['co2_absorption_kg_per_year']} กก./ปี"
+                reason_text = f"ระบบคัดเลือกจากฐานข้อมูล: เหมาะสมอย่างมากกับภูมิภาค '{region}' และสภาพฝนเฉลี่ย {round(precip)} มม./ปี โดยมีทนแล้งระดับ{drought_th} (คะแนนความเหมาะสม {round(best_score, 1)})"
+                ben_text = f"เมื่อโตเต็มวัยผลิตร่มเงากว่า {best_sci['canopy_coverage_m2']} ตร.ม. ช่วยลดอุณหภูมิรอบข้างสูงสุด {best_sci['temperature_reduction_celsius'][1]}°C และรับ CO₂ {best_sci['co2_absorption_kg_per_year']} กก./ปี"
 
                 recommendations.append({
                     "category": category,

@@ -149,6 +149,159 @@
                 8
             ],
             "notes": "ไม้เนื้อแข็งมีมูลค่าสูง ต้องการการดูแลและการอนุรักษ์"
+        },
+        {
+            "name": "มะฮอกกานี",
+            "english_name": "Mahogany",
+            "scientific_name": "Swietenia macrophylla",
+            "growth_rate": "fast",
+            "max_height_m": 30,
+            "average_canopy_diameter_m": 12,
+            "co2_absorption_kg_per_year": 25,
+            "water_requirement": "medium",
+            "drought_tolerance": "high",
+            "root_depth": "deep",
+            "lifespan_years": 80,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนทราย",
+                "เหนียว"
+            ],
+            "suitable_regions": [
+                "ภาคกลาง",
+                "ภาคตะวันออก",
+                "ภาคใต้"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "ไม้เศรษฐกิจโตเร็ว เนื้อไม้สวยงาม นิยมทำเฟอร์นิเจอร์"
+        },
+        {
+            "name": "สะเดา",
+            "english_name": "Neem",
+            "scientific_name": "Azadirachta indica",
+            "growth_rate": "fast",
+            "max_height_m": 20,
+            "average_canopy_diameter_m": 8,
+            "co2_absorption_kg_per_year": 18,
+            "water_requirement": "low",
+            "drought_tolerance": "high",
+            "root_depth": "deep",
+            "lifespan_years": 50,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ทราย",
+                "ลูกรัง"
+            ],
+            "suitable_regions": [
+                "ทุกภาค"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8
+            ],
+            "notes": "ทนแล้งได้ดีมาก มีประโยชน์หลายอย่างและใช้เป็นสมุนไพรไล่แมลง"
+        },
+        {
+            "name": "กระถินเทพา",
+            "english_name": "Brown Salwood",
+            "scientific_name": "Acacia mangium",
+            "growth_rate": "fast",
+            "max_height_m": 30,
+            "average_canopy_diameter_m": 10,
+            "co2_absorption_kg_per_year": 35,
+            "water_requirement": "medium",
+            "drought_tolerance": "high",
+            "root_depth": "deep",
+            "lifespan_years": 40,
+            "suitable_soil_types": [
+                "สภาพดินทั่วไป",
+                "ดินเสื่อมโทรม"
+            ],
+            "suitable_regions": [
+                "ทุกภาค"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "ไม้โตเร็วมาก ทนทานต่อสภาพดินเลว นิยมปลูกเพื่อใช้เนื้อไม้และฟื้นฟูดิน"
+        },
+        {
+            "name": "กฤษณา",
+            "english_name": "Agarwood",
+            "scientific_name": "Aquilaria crassna",
+            "growth_rate": "medium",
+            "max_height_m": 25,
+            "average_canopy_diameter_m": 8,
+            "co2_absorption_kg_per_year": 20,
+            "water_requirement": "high",
+            "drought_tolerance": "low",
+            "root_depth": "medium",
+            "lifespan_years": 80,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนทราย",
+                "ดินเหนียว",
+                "ดินเค็ม"
+            ],
+            "suitable_regions": [
+                "ภาคเหนือ",
+                "ภาคตะวันออกเฉียงเหนือ",
+                "ภาคกลาง",
+                "ภาคตะวันออก",
+                "ภาคใต้"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "ไม้เศรษฐกิจมูลค่าสูงมาก (ทองคำในป่า) ต้องการความชื้นสูง ไม่ทนแล้ง"
+        },
+        {
+            "name": "ชิงชัง",
+            "english_name": "Burmese Rosewood",
+            "scientific_name": "Dalbergia oliveri",
+            "growth_rate": "slow",
+            "max_height_m": 25,
+            "average_canopy_diameter_m": 12,
+            "co2_absorption_kg_per_year": 22,
+            "water_requirement": "low",
+            "drought_tolerance": "high",
+            "root_depth": "deep",
+            "lifespan_years": 150,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนทราย",
+                "ลูกรัง"
+            ],
+            "suitable_regions": [
+                "ภาคเหนือ",
+                "ภาคตะวันออกเฉียงเหนือ"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8
+            ],
+            "notes": "ไม้เนื้อแข็งลายสวยงาม หายากและมีราคาสูงมาก ทนแล้งได้ดีเยี่ยม"
         }
     ],
     "edible": [
@@ -305,6 +458,152 @@
                 8
             ],
             "notes": "ไม้ผลโตเร็ว ดูแลง่าย เหมาะกับสวนครัวและเชิงพาณิชย์ขนาดเล็ก"
+        },
+        {
+            "name": "มะพร้าว",
+            "english_name": "Coconut",
+            "scientific_name": "Cocos nucifera",
+            "growth_rate": "medium",
+            "max_height_m": 25,
+            "average_canopy_diameter_m": 6,
+            "co2_absorption_kg_per_year": 14,
+            "water_requirement": "high",
+            "drought_tolerance": "low",
+            "root_depth": "medium",
+            "lifespan_years": 60,
+            "suitable_soil_types": [
+                "ทราย",
+                "ร่วนปนทราย"
+            ],
+            "suitable_regions": [
+                "ภาคใต้",
+                "ภาคตะวันออก",
+                "ภาคกลาง"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "ผลและน้ำใช้ประโยชน์ได้หลากหลาย ชอบพื้นที่ใกล้ทะเล"
+        },
+        {
+            "name": "มะนาว",
+            "english_name": "Lime",
+            "scientific_name": "Citrus aurantiifolia",
+            "growth_rate": "medium",
+            "max_height_m": 4,
+            "average_canopy_diameter_m": 3,
+            "co2_absorption_kg_per_year": 8,
+            "water_requirement": "medium",
+            "drought_tolerance": "medium",
+            "root_depth": "shallow",
+            "lifespan_years": 20,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนทราย"
+            ],
+            "suitable_regions": [
+                "ทุกภาค"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9
+            ],
+            "notes": "พืชสวนครัวยอดนิยม ปลูกง่าย ต้องการแสงแดดจัด"
+        },
+        {
+            "name": "มังคุด",
+            "english_name": "Mangosteen",
+            "scientific_name": "Garcinia mangostana",
+            "growth_rate": "slow",
+            "max_height_m": 15,
+            "average_canopy_diameter_m": 8,
+            "co2_absorption_kg_per_year": 18,
+            "water_requirement": "high",
+            "drought_tolerance": "low",
+            "root_depth": "medium",
+            "lifespan_years": 80,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนเหนียว"
+            ],
+            "suitable_regions": [
+                "ภาคใต้",
+                "ภาคตะวันออก"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "ราชินีผลไม้ ต้องการความชื้นและปริมาณน้ำฝนสูง ดินต้องระบายน้ำได้ดี"
+        },
+        {
+            "name": "ลำไย",
+            "english_name": "Longan",
+            "scientific_name": "Dimocarpus longan",
+            "growth_rate": "medium",
+            "max_height_m": 12,
+            "average_canopy_diameter_m": 8,
+            "co2_absorption_kg_per_year": 16,
+            "water_requirement": "medium",
+            "drought_tolerance": "medium",
+            "root_depth": "medium",
+            "lifespan_years": 60,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนทราย"
+            ],
+            "suitable_regions": [
+                "ภาคเหนือ"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8
+            ],
+            "notes": "ไม้ผลเศรษฐกิจอันดับต้นๆ ของภาคเหนือ ต้องการอากาศเย็นในการติดดอก"
+        },
+        {
+            "name": "อินทผลัม",
+            "english_name": "Date Palm",
+            "scientific_name": "Phoenix dactylifera",
+            "growth_rate": "medium",
+            "max_height_m": 25,
+            "average_canopy_diameter_m": 5,
+            "co2_absorption_kg_per_year": 20,
+            "water_requirement": "low",
+            "drought_tolerance": "high",
+            "root_depth": "deep",
+            "lifespan_years": 100,
+            "suitable_soil_types": [
+                "ทราย",
+                "ร่วนปนทราย"
+            ],
+            "suitable_regions": [
+                "ภาคตะวันออกเฉียงเหนือ",
+                "ภาคตะวันตก",
+                "ภาคกลาง"
+            ],
+            "peak_growth_months": [
+                3,
+                4,
+                5,
+                6,
+                7
+            ],
+            "notes": "พืชทนแล้งสูงมาก ทนดินเค็ม ผลตอบแทนต่อพื้นที่สูงมากในปัจจุบัน"
         }
     ],
     "conservation": [
@@ -461,6 +760,153 @@
                 10
             ],
             "notes": "ไม้ยืนต้นขนาดใหญ่ เหมาะกับพื้นที่ชุ่มน้ำและลุ่มแม่น้ำ"
+        },
+        {
+            "name": "โกงกางใบเล็ก",
+            "english_name": "Mangrove",
+            "scientific_name": "Rhizophora apiculata",
+            "growth_rate": "fast",
+            "max_height_m": 15,
+            "average_canopy_diameter_m": 6,
+            "co2_absorption_kg_per_year": 45,
+            "water_requirement": "high",
+            "drought_tolerance": "low",
+            "root_depth": "shallow",
+            "lifespan_years": 50,
+            "suitable_soil_types": [
+                "โคลน",
+                "ดินเลน"
+            ],
+            "suitable_regions": [
+                "ภาคใต้",
+                "ภาคตะวันออก"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "สุดยอดพืชดูดซับคาร์บอนและช่วยป้องกันการกัดเซาะชายฝั่ง"
+        },
+        {
+            "name": "ไผ่ตง",
+            "english_name": "Sweet Bamboo",
+            "scientific_name": "Dendrocalamus asper",
+            "growth_rate": "fast",
+            "max_height_m": 20,
+            "average_canopy_diameter_m": 4,
+            "co2_absorption_kg_per_year": 38,
+            "water_requirement": "medium",
+            "drought_tolerance": "high",
+            "root_depth": "medium",
+            "lifespan_years": 30,
+            "suitable_soil_types": [
+                "ร่วน",
+                "เหนียว",
+                "ร่วนปนทราย"
+            ],
+            "suitable_regions": [
+                "ทุกภาค"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "โตเร็วมาก เป็นแหล่งคาร์บอนซิงก์ที่ดีมาก ใช้ประโยชน์ได้เยอะ"
+        },
+        {
+            "name": "ราชพฤกษ์",
+            "english_name": "Golden Shower Tree",
+            "scientific_name": "Cassia fistula",
+            "growth_rate": "medium",
+            "max_height_m": 15,
+            "average_canopy_diameter_m": 6,
+            "co2_absorption_kg_per_year": 18,
+            "water_requirement": "low",
+            "drought_tolerance": "high",
+            "root_depth": "medium",
+            "lifespan_years": 60,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ทราย",
+                "ลูกรัง"
+            ],
+            "suitable_regions": [
+                "ทุกภาค"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8
+            ],
+            "notes": "ต้นไม้ประจำชาติไทย ดอกสีเหลืองสวยงาม ทนแล้งจัดได้ดี"
+        },
+        {
+            "name": "หว้า",
+            "english_name": "Jambolan Plum",
+            "scientific_name": "Syzygium cumini",
+            "growth_rate": "medium",
+            "max_height_m": 30,
+            "average_canopy_diameter_m": 12,
+            "co2_absorption_kg_per_year": 28,
+            "water_requirement": "high",
+            "drought_tolerance": "medium",
+            "root_depth": "deep",
+            "lifespan_years": 100,
+            "suitable_soil_types": [
+                "ร่วน",
+                "เหนียว"
+            ],
+            "suitable_regions": [
+                "ทุกภาค"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9,
+                10
+            ],
+            "notes": "ทนทานต่อน้ำท่วมขังได้ดีเยี่ยม ผลเป็นแหล่งอาหารสำคัญของนกและป่า"
+        },
+        {
+            "name": "ตะแบก",
+            "english_name": "Bungor",
+            "scientific_name": "Lagerstroemia floribunda",
+            "growth_rate": "medium",
+            "max_height_m": 20,
+            "average_canopy_diameter_m": 8,
+            "co2_absorption_kg_per_year": 22,
+            "water_requirement": "low",
+            "drought_tolerance": "high",
+            "root_depth": "deep",
+            "lifespan_years": 80,
+            "suitable_soil_types": [
+                "ร่วน",
+                "ร่วนปนทราย"
+            ],
+            "suitable_regions": [
+                "ภาคตะวันออกเฉียงเหนือ",
+                "ภาคกลาง",
+                "ภาคเหนือ"
+            ],
+            "peak_growth_months": [
+                5,
+                6,
+                7,
+                8,
+                9
+            ],
+            "notes": "ไม้ยืนต้นผลัดใบ ให้ร่มเงาดี ดอกสวยงาม ทนแล้งและฟื้นฟูสภาพแวดล้อมได้ดี"
         }
     ]
 }

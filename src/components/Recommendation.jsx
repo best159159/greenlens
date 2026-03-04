@@ -38,7 +38,7 @@ const Recommendation = ({ data }) => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="grid md:grid-cols-2 gap-4 no-print">
+                    <div className="grid md:grid-cols-2 gap-4 print:hidden">
                         <button
                             onClick={() => window.print()}
                             className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-4 rounded-xl hover:bg-slate-900 transition-colors font-medium hover:scale-[1.02] active:scale-95 shadow-md group"
