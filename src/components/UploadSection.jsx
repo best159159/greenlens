@@ -36,6 +36,8 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
     const [selectedImage, setSelectedImage] = useState(null)
     const [imagePreview, setImagePreview] = useState(null)
     const [selectedProvince, setSelectedProvince] = useState('')
+    const [provinceSearch, setProvinceSearch] = useState('')
+    const [showProvinceSelect, setShowProvinceSelect] = useState(false)
     const [latitude, setLatitude] = useState('')
     const [longitude, setLongitude] = useState('')
     const [mapPosition, setMapPosition] = useState({ lat: 13.7563, lng: 100.5018 }) // Default Bangkok
@@ -154,16 +156,27 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
         'สุราษฎร์ธานี': { lat: 9.1342, lng: 99.3334 },
     }
 
+    // กรองจังหวัดตามคำค้นหา
+    const filteredProvinces = provinceSearch.trim()
+        ? provinces.filter(p => p.includes(provinceSearch.trim()))
+        : provinces
+
+    // ปิด province dropdown เมื่อคลิกข้างนอก
+    useEffect(() => {
+        const handler = () => setShowProvinceSelect(false)
+        document.addEventListener('click', handler)
+        return () => document.removeEventListener('click', handler)
+    }, [])
+
     const [mapInstance, setMapInstance] = useState(null)
 
-    // Handle province change and auto-pan
-    const handleProvinceChange = async (e) => {
-        const province = e.target.value
+    // Handle province selection from searchable dropdown
+    const handleProvinceSelect = (province) => {
         setSelectedProvince(province)
+        setProvinceSearch('')
+        setShowProvinceSelect(false)
 
-        if (!province) return;
-
-        // ถ้ามีใน mapping แข็ง ให้ใช้เลย
+        // ตั้งพิกัดและเลื่อนแผนที่
         if (provinceCoordinates[province]) {
             const coords = provinceCoordinates[province]
             setMapPosition(coords)
@@ -171,27 +184,27 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
             setLatitude(coords.lat.toFixed(6))
             setLongitude(coords.lng.toFixed(6))
             if (mapInstance) mapInstance.flyTo(coords, 10)
-            return
-        }
-
-        // ถ้าไม่มี ลอง fetch API เอาพิกัดคร่าวๆ
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(province + ', Thailand')}`)
-            const data = await res.json()
-            if (data && data.length > 0) {
-                const lat = parseFloat(data[0].lat)
-                const lng = parseFloat(data[0].lon)
-                const newPos = { lat, lng }
-                setMapPosition(newPos)
-                setMarkerPosition(newPos)
-                setLatitude(lat.toFixed(6))
-                setLongitude(lng.toFixed(6))
-                if (mapInstance) mapInstance.flyTo(newPos, 10)
-            }
-        } catch (error) {
-            console.error("Failed to fetch province coordinates", error)
+        } else {
+            // Fallback: fetch จาก Nominatim
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(province + ', Thailand')}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat)
+                        const lng = parseFloat(data[0].lon)
+                        const newPos = { lat, lng }
+                        setMapPosition(newPos)
+                        setMarkerPosition(newPos)
+                        setLatitude(lat.toFixed(6))
+                        setLongitude(lng.toFixed(6))
+                        if (mapInstance) mapInstance.flyTo(newPos, 10)
+                    }
+                })
+                .catch(err => console.error('Failed to fetch province coordinates', err))
         }
     }
+
+
 
     // Handle location search with debounce
     useEffect(() => {
@@ -305,23 +318,44 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
 
                     {/* Location Selection Zone */}
                     <div className="grid md:grid-cols-2 gap-6">
-                        {/* Province Selector */}
-                        <div>
+                        {/* Province Selector - Searchable */}
+                        <div onClick={(e) => e.stopPropagation()}>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
                                 เลือกจังหวัด <span className="text-red-500">*</span>
                             </label>
-                            <select
-                                value={selectedProvince}
-                                onChange={handleProvinceChange}
-                                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-eco-green-500 focus:ring focus:ring-eco-green-200 transition-all outline-none text-slate-700 bg-white"
-                            >
-                                <option value="">-- เลือกจังหวัด --</option>
-                                {provinces.map((province) => (
-                                    <option key={province} value={province}>
-                                        {province}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={provinceSearch}
+                                    onChange={(e) => { setProvinceSearch(e.target.value); setShowProvinceSelect(true) }}
+                                    onFocus={() => setShowProvinceSelect(true)}
+                                    placeholder={selectedProvince || 'พิมพ์ชื่อจังหวัดเพื่อค้นหา...'}
+                                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all outline-none text-slate-700 bg-white ${selectedProvince ? 'border-eco-green-400 focus:border-eco-green-500' : 'border-slate-200 focus:border-eco-green-500'
+                                        } focus:ring focus:ring-eco-green-200`}
+                                />
+                                {selectedProvince && !provinceSearch && (
+                                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                        <span className="text-slate-700 font-medium">📍 {selectedProvince}</span>
+                                    </div>
+                                )}
+                                {showProvinceSelect && (
+                                    <ul className="absolute z-50 w-full bg-white mt-1 rounded-xl shadow-lg border border-slate-100 max-h-52 overflow-y-auto">
+                                        {filteredProvinces.map(p => (
+                                            <li
+                                                key={p}
+                                                onClick={() => handleProvinceSelect(p)}
+                                                className={`px-4 py-2.5 cursor-pointer text-sm transition-colors hover:bg-eco-green-50 ${p === selectedProvince ? 'bg-eco-green-100 font-bold text-eco-green-800' : 'text-slate-700'
+                                                    }`}
+                                            >
+                                                {p === selectedProvince ? `✅ ${p}` : p}
+                                            </li>
+                                        ))}
+                                        {filteredProvinces.length === 0 && (
+                                            <li className="px-4 py-3 text-sm text-slate-400 text-center">ไม่พบจังหวัดที่ค้นหา</li>
+                                        )}
+                                    </ul>
+                                )}
+                            </div>
                         </div>
 
                         {/* Local Area Input */}
