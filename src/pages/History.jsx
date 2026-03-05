@@ -93,10 +93,10 @@ export default function History() {
                                         </span>
                                     </div>
                                     <h3 className="font-bold text-slate-800 mb-2 truncate">
-                                        {item.ai_surface_context || 'ไม่พบข้อมูลบริบทพื้นที่'}
+                                        {item.ai_surface_context || item.full_result?.surface_context || 'ไม่พบข้อมูลบริบทพื้นที่'}
                                     </h3>
                                     <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                                        ต้นไม้แนะนำ: {item.recommended_trees || '-'}
+                                        ต้นไม้แนะนำ: {item.recommended_trees || item.full_result?.recommendations?.map(r => r.tree_name).join(', ') || '-'}
                                     </p>
                                     <button
                                         onClick={() => navigate('/result', { state: { result: item.full_result } })}
