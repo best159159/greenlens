@@ -67,19 +67,91 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
         'กระบี่', 'ชุมพร', 'ตรัง', 'นครศรีธรรมราช', 'นราธิวาส', 'ปัตตานี', 'พังงา', 'พัทลุง', 'ภูเก็ต', 'ยะลา', 'ระนอง', 'สงขลา', 'สตูล', 'สุราษฎร์ธานี'
     ].sort()
 
-    // Mapping กึ่งสำเร็จรูปสำหรับพิกัดใจกลางจังหวัดหลักๆ แบบคร่าวๆ
+    // พิกัดใจกลางครบทุก 77 จังหวัด
     const provinceCoordinates = {
-        'กรุงเทพมหานคร': { lat: 13.7563, lng: 100.5018 },
+        // ภาคเหนือ
+        'เชียงราย': { lat: 19.9105, lng: 99.8406 },
         'เชียงใหม่': { lat: 18.7883, lng: 98.9853 },
+        'น่าน': { lat: 18.7756, lng: 100.7730 },
+        'พะเยา': { lat: 19.1664, lng: 99.9019 },
+        'แพร่': { lat: 18.1445, lng: 100.1408 },
+        'แม่ฮ่องสอน': { lat: 19.3020, lng: 97.9654 },
+        'ลำปาง': { lat: 18.2888, lng: 99.4909 },
+        'ลำพูน': { lat: 18.5744, lng: 99.0087 },
+        'อุตรดิตถ์': { lat: 17.6200, lng: 100.0993 },
+        // ภาคตะวันออกเฉียงเหนือ
+        'กาฬสินธุ์': { lat: 16.4315, lng: 103.5059 },
         'ขอนแก่น': { lat: 16.4322, lng: 102.8236 },
+        'ชัยภูมิ': { lat: 15.8068, lng: 102.0316 },
+        'นครพนม': { lat: 17.3921, lng: 104.7695 },
         'นครราชสีมา': { lat: 14.9799, lng: 102.0978 },
+        'บึงกาฬ': { lat: 18.3609, lng: 103.6466 },
+        'บุรีรัมย์': { lat: 14.9930, lng: 103.1029 },
+        'มหาสารคาม': { lat: 16.1851, lng: 103.3006 },
+        'มุกดาหาร': { lat: 16.5425, lng: 104.7235 },
+        'ยโสธร': { lat: 15.7944, lng: 104.1451 },
+        'ร้อยเอ็ด': { lat: 16.0538, lng: 103.6520 },
+        'เลย': { lat: 17.4860, lng: 101.7223 },
+        'สกลนคร': { lat: 17.1545, lng: 104.1348 },
+        'สุรินทร์': { lat: 14.8818, lng: 103.4936 },
+        'ศรีสะเกษ': { lat: 15.1186, lng: 104.3220 },
+        'หนองคาย': { lat: 17.8783, lng: 102.7420 },
+        'หนองบัวลำภู': { lat: 17.2218, lng: 102.4260 },
         'อุดรธานี': { lat: 17.4138, lng: 102.7872 },
-        'ชลบุรี': { lat: 13.3611, lng: 100.9847 },
-        'ภูเก็ต': { lat: 7.8804, lng: 98.3923 },
-        'สงขลา': { lat: 7.1898, lng: 100.5954 },
-        'สุราษฎร์ธานี': { lat: 9.1342, lng: 99.3334 },
-        'สระบุรี': { lat: 14.5289, lng: 100.9118 },
+        'อุบลราชธานี': { lat: 15.2286, lng: 104.8564 },
+        'อำนาจเจริญ': { lat: 15.8656, lng: 104.6258 },
+        // ภาคกลาง
+        'กรุงเทพมหานคร': { lat: 13.7563, lng: 100.5018 },
+        'กำแพงเพชร': { lat: 16.4827, lng: 99.5226 },
+        'ชัยนาท': { lat: 15.1851, lng: 100.1251 },
+        'นครนายก': { lat: 14.2069, lng: 101.2133 },
+        'นครปฐม': { lat: 13.8199, lng: 100.0638 },
+        'นครสวรรค์': { lat: 15.7030, lng: 100.1371 },
+        'นนทบุรี': { lat: 13.8591, lng: 100.5217 },
+        'ปทุมธานี': { lat: 14.0208, lng: 100.5250 },
         'พระนครศรีอยุธยา': { lat: 14.3516, lng: 100.5844 },
+        'พิจิตร': { lat: 16.4429, lng: 100.3487 },
+        'พิษณุโลก': { lat: 16.8211, lng: 100.2659 },
+        'เพชรบูรณ์': { lat: 16.4189, lng: 101.1591 },
+        'ลพบุรี': { lat: 14.7995, lng: 100.6534 },
+        'สมุทรปราการ': { lat: 13.5991, lng: 100.5998 },
+        'สมุทรสงคราม': { lat: 13.4098, lng: 100.0024 },
+        'สมุทรสาคร': { lat: 13.5475, lng: 100.2737 },
+        'สิงห์บุรี': { lat: 14.8936, lng: 100.3967 },
+        'สุโขทัย': { lat: 17.0078, lng: 99.8265 },
+        'สุพรรณบุรี': { lat: 14.4744, lng: 100.1177 },
+        'สระบุรี': { lat: 14.5289, lng: 100.9118 },
+        'อ่างทอง': { lat: 14.5896, lng: 100.4550 },
+        'อุทัยธานี': { lat: 15.3835, lng: 100.0245 },
+        // ภาคตะวันออก
+        'จันทบุรี': { lat: 12.6113, lng: 102.1037 },
+        'ฉะเชิงเทรา': { lat: 13.6904, lng: 101.0779 },
+        'ชลบุรี': { lat: 13.3611, lng: 100.9847 },
+        'ตราด': { lat: 12.2428, lng: 102.5175 },
+        'ปราจีนบุรี': { lat: 14.0509, lng: 101.3717 },
+        'ระยอง': { lat: 12.6814, lng: 101.2816 },
+        'สระแก้ว': { lat: 13.8240, lng: 102.0645 },
+        // ภาคตะวันตก
+        'กาญจนบุรี': { lat: 14.0041, lng: 99.5483 },
+        'ตาก': { lat: 16.8840, lng: 99.1259 },
+        'ประจวบคีรีขันธ์': { lat: 11.8126, lng: 99.7957 },
+        'เพชรบุรี': { lat: 13.1112, lng: 99.9398 },
+        'ราชบุรี': { lat: 13.5283, lng: 99.8134 },
+        // ภาคใต้
+        'กระบี่': { lat: 8.0863, lng: 98.9063 },
+        'ชุมพร': { lat: 10.4930, lng: 99.1800 },
+        'ตรัง': { lat: 7.5564, lng: 99.6114 },
+        'นครศรีธรรมราช': { lat: 8.4304, lng: 99.9631 },
+        'นราธิวาส': { lat: 6.4255, lng: 101.8253 },
+        'ปัตตานี': { lat: 6.8686, lng: 101.2505 },
+        'พังงา': { lat: 8.4511, lng: 98.5156 },
+        'พัทลุง': { lat: 7.6167, lng: 100.0740 },
+        'ภูเก็ต': { lat: 7.8804, lng: 98.3923 },
+        'ยะลา': { lat: 6.5414, lng: 101.2803 },
+        'ระนอง': { lat: 9.9529, lng: 98.6085 },
+        'สงขลา': { lat: 7.1898, lng: 100.5954 },
+        'สตูล': { lat: 6.6239, lng: 100.0673 },
+        'สุราษฎร์ธานี': { lat: 9.1342, lng: 99.3334 },
     }
 
     const [mapInstance, setMapInstance] = useState(null)
@@ -343,25 +415,44 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
                         <div className="mt-2 text-right">
                             <button
                                 type="button"
-                                onClick={() => {
-                                    if (navigator.geolocation) {
-                                        navigator.geolocation.getCurrentPosition((pos) => {
-                                            const lat = pos.coords.latitude;
-                                            const lng = pos.coords.longitude;
-                                            setLatitude(lat.toFixed(6));
-                                            setLongitude(lng.toFixed(6));
-                                            setMarkerPosition({ lat, lng });
-                                            setMapPosition({ lat, lng });
-                                        }, () => {
-                                            alert('ไม่สามารถดึงตำแหน่งได้ หรือผู้ใช้ไม่อนุญาตการเข้าถึง GPS');
-                                        });
-                                    } else {
-                                        alert('เบราว์เซอร์ของคุณไม่รองรับการดึงพิกัดอัตโนมัติ');
+                                onClick={async () => {
+                                    try {
+                                        // ใช้ IP-based Geolocation แทน GPS (แม่นยำกว่าบน Desktop)
+                                        const res = await fetch('http://ip-api.com/json/?fields=lat,lon,city,regionName,status')
+                                        const data = await res.json()
+                                        if (data.status === 'success') {
+                                            const lat = data.lat
+                                            const lng = data.lon
+                                            setLatitude(lat.toFixed(6))
+                                            setLongitude(lng.toFixed(6))
+                                            setMarkerPosition({ lat, lng })
+                                            setMapPosition({ lat, lng })
+                                            if (mapInstance) mapInstance.flyTo({ lat, lng }, 10)
+                                        } else {
+                                            throw new Error('IP lookup failed')
+                                        }
+                                    } catch (err) {
+                                        // Fallback: ถ้า IP lookup ไม่ได้ ลอง browser GPS
+                                        if (navigator.geolocation) {
+                                            navigator.geolocation.getCurrentPosition((pos) => {
+                                                const lat = pos.coords.latitude
+                                                const lng = pos.coords.longitude
+                                                setLatitude(lat.toFixed(6))
+                                                setLongitude(lng.toFixed(6))
+                                                setMarkerPosition({ lat, lng })
+                                                setMapPosition({ lat, lng })
+                                                if (mapInstance) mapInstance.flyTo({ lat, lng }, 10)
+                                            }, () => {
+                                                alert('ไม่สามารถดึงตำแหน่งได้ กรุณาเลือกจังหวัดและปักหมุดบนแผนที่แทน')
+                                            })
+                                        } else {
+                                            alert('ไม่สามารถดึงตำแหน่งได้ กรุณาเลือกจังหวัดและปักหมุดบนแผนที่แทน')
+                                        }
                                     }
                                 }}
                                 className="text-sm text-eco-green-600 font-medium hover:text-eco-green-700 transition"
                             >
-                                📍 ดึงตำแหน่งปัจจุบันของฉัน
+                                📍 ดึงตำแหน่งโดยประมาณจากอินเทอร์เน็ต
                             </button>
                         </div>
                     </div>

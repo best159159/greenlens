@@ -95,35 +95,60 @@ export default function Campaign() {
         }
     }
 
-    const handleGetLocation = () => {
+    const handleGetLocation = async () => {
         setIsLocating(true)
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const lat = pos.coords.latitude
-                const lng = pos.coords.longitude
+        try {
+            // ใช้ IP-based Geolocation เป็นหลัก (แม่นยำกว่าบน Desktop)
+            const res = await fetch('http://ip-api.com/json/?fields=lat,lon,city,regionName,status')
+            const data = await res.json()
+            if (data.status === 'success') {
+                const lat = data.lat
+                const lng = data.lon
+                // Reverse geocode เพื่อหาชื่อจังหวัด
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
-                    const data = await res.json()
-                    const state = data.address?.state || ''
+                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
+                    const geoData = await geoRes.json()
+                    const state = geoData.address?.state || ''
                     let province = state.replace('Province', '').trim()
-                    let district = data.address?.county || data.address?.city || ''
-                    if (!province) throw new Error('No province in reverse geocode');
+                    let district = geoData.address?.county || geoData.address?.city || data.city || ''
+                    if (!province) province = data.regionName || 'Unknown'
                     setLocation({ lat, lng, province, district })
-                    setIsLocating(false)
-                } catch (e) {
-                    console.error('Reverse geocode failed', e)
-                    // If reverse geocode fails, fallback to IP
-                    await getFallbackLocation()
+                } catch {
+                    setLocation({ lat, lng, province: data.regionName || 'Unknown', district: data.city || '' })
                 }
-            }, async () => {
-                console.log('User denied GPS or GPS failed, using IP Geolocation fallback')
+                setIsLocating(false)
+                return
+            }
+            throw new Error('IP lookup failed')
+        } catch (err) {
+            // Fallback: ลอง Browser GPS
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const lat = pos.coords.latitude
+                    const lng = pos.coords.longitude
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
+                        const data = await res.json()
+                        const state = data.address?.state || ''
+                        let province = state.replace('Province', '').trim()
+                        let district = data.address?.county || data.address?.city || ''
+                        if (!province) throw new Error('No province in reverse geocode');
+                        setLocation({ lat, lng, province, district })
+                        setIsLocating(false)
+                    } catch (e) {
+                        console.error('Reverse geocode failed', e)
+                        await getFallbackLocation()
+                    }
+                }, async () => {
+                    console.log('User denied GPS or GPS failed, using IP Geolocation fallback')
+                    await getFallbackLocation()
+                }, {
+                    timeout: 5000
+                })
+            } else {
+                console.log('Browser no GPS support, using IP Geolocation fallback')
                 await getFallbackLocation()
-            }, {
-                timeout: 5000 // Added timeout, wait 5 sec max for GPS
-            })
-        } else {
-            console.log('Browser no GPS support, using IP Geolocation fallback')
-            getFallbackLocation()
+            }
         }
     }
 
