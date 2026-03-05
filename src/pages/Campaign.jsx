@@ -26,9 +26,91 @@ export default function Campaign() {
     const [treeType, setTreeType] = useState('')
     const [treesPlanted, setTreesPlanted] = useState(1)
     const [notes, setNotes] = useState('')
-    const [location, setLocation] = useState({ lat: '', lng: '', province: '', district: '' })
+    const [selectedProvince, setSelectedProvince] = useState('')
+    const [provinceSearch, setProvinceSearch] = useState('')
+    const [showProvinceDropdown, setShowProvinceDropdown] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isLocating, setIsLocating] = useState(false)
+
+    // รายชื่อจังหวัดทั้งหมด
+    const provinces = [
+        'เชียงราย', 'เชียงใหม่', 'น่าน', 'พะเยา', 'แพร่', 'แม่ฮ่องสอน', 'ลำปาง', 'ลำพูน', 'อุตรดิตถ์',
+        'กาฬสินธุ์', 'ขอนแก่น', 'ชัยภูมิ', 'นครพนม', 'นครราชสีมา', 'บึงกาฬ', 'บุรีรัมย์', 'มหาสารคาม', 'มุกดาหาร', 'ยโสธร', 'ร้อยเอ็ด', 'เลย', 'สกลนคร', 'สุรินทร์', 'ศรีสะเกษ', 'หนองคาย', 'หนองบัวลำภู', 'อุดรธานี', 'อุบลราชธานี', 'อำนาจเจริญ',
+        'กรุงเทพมหานคร', 'กำแพงเพชร', 'ชัยนาท', 'นครนายก', 'นครปฐม', 'นครสวรรค์', 'นนทบุรี', 'ปทุมธานี', 'พระนครศรีอยุธยา', 'พิจิตร', 'พิษณุโลก', 'เพชรบูรณ์', 'ลพบุรี', 'สมุทรปราการ', 'สมุทรสงคราม', 'สมุทรสาคร', 'สิงห์บุรี', 'สุโขทัย', 'สุพรรณบุรี', 'สระบุรี', 'อ่างทอง', 'อุทัยธานี',
+        'จันทบุรี', 'ฉะเชิงเทรา', 'ชลบุรี', 'ตราด', 'ปราจีนบุรี', 'ระยอง', 'สระแก้ว',
+        'กาญจนบุรี', 'ตาก', 'ประจวบคีรีขันธ์', 'เพชรบุรี', 'ราชบุรี',
+        'กระบี่', 'ชุมพร', 'ตรัง', 'นครศรีธรรมราช', 'นราธิวาส', 'ปัตตานี', 'พังงา', 'พัทลุง', 'ภูเก็ต', 'ยะลา', 'ระนอง', 'สงขลา', 'สตูล', 'สุราษฎร์ธานี'
+    ].sort()
+
+    // พิกัดจังหวัด
+    const provinceCoordinates = {
+        'เชียงราย': { lat: 19.9105, lng: 99.8406 }, 'เชียงใหม่': { lat: 18.7883, lng: 98.9853 },
+        'น่าน': { lat: 18.7756, lng: 100.7730 }, 'พะเยา': { lat: 19.1664, lng: 99.9019 },
+        'แพร่': { lat: 18.1445, lng: 100.1408 }, 'แม่ฮ่องสอน': { lat: 19.3020, lng: 97.9654 },
+        'ลำปาง': { lat: 18.2888, lng: 99.4909 }, 'ลำพูน': { lat: 18.5744, lng: 99.0087 },
+        'อุตรดิตถ์': { lat: 17.6200, lng: 100.0993 }, 'กาฬสินธุ์': { lat: 16.4315, lng: 103.5059 },
+        'ขอนแก่น': { lat: 16.4322, lng: 102.8236 }, 'ชัยภูมิ': { lat: 15.8068, lng: 102.0316 },
+        'นครพนม': { lat: 17.3921, lng: 104.7695 }, 'นครราชสีมา': { lat: 14.9799, lng: 102.0978 },
+        'บึงกาฬ': { lat: 18.3609, lng: 103.6466 }, 'บุรีรัมย์': { lat: 14.9930, lng: 103.1029 },
+        'มหาสารคาม': { lat: 16.1851, lng: 103.3006 }, 'มุกดาหาร': { lat: 16.5425, lng: 104.7235 },
+        'ยโสธร': { lat: 15.7944, lng: 104.1451 }, 'ร้อยเอ็ด': { lat: 16.0538, lng: 103.6520 },
+        'เลย': { lat: 17.4860, lng: 101.7223 }, 'สกลนคร': { lat: 17.1545, lng: 104.1348 },
+        'สุรินทร์': { lat: 14.8818, lng: 103.4936 }, 'ศรีสะเกษ': { lat: 15.1186, lng: 104.3220 },
+        'หนองคาย': { lat: 17.8783, lng: 102.7420 }, 'หนองบัวลำภู': { lat: 17.2218, lng: 102.4260 },
+        'อุดรธานี': { lat: 17.4138, lng: 102.7872 }, 'อุบลราชธานี': { lat: 15.2286, lng: 104.8564 },
+        'อำนาจเจริญ': { lat: 15.8656, lng: 104.6258 }, 'กรุงเทพมหานคร': { lat: 13.7563, lng: 100.5018 },
+        'กำแพงเพชร': { lat: 16.4827, lng: 99.5226 }, 'ชัยนาท': { lat: 15.1851, lng: 100.1251 },
+        'นครนายก': { lat: 14.2069, lng: 101.2133 }, 'นครปฐม': { lat: 13.8199, lng: 100.0638 },
+        'นครสวรรค์': { lat: 15.7030, lng: 100.1371 }, 'นนทบุรี': { lat: 13.8591, lng: 100.5217 },
+        'ปทุมธานี': { lat: 14.0208, lng: 100.5250 }, 'พระนครศรีอยุธยา': { lat: 14.3516, lng: 100.5844 },
+        'พิจิตร': { lat: 16.4429, lng: 100.3487 }, 'พิษณุโลก': { lat: 16.8211, lng: 100.2659 },
+        'เพชรบูรณ์': { lat: 16.4189, lng: 101.1591 }, 'ลพบุรี': { lat: 14.7995, lng: 100.6534 },
+        'สมุทรปราการ': { lat: 13.5991, lng: 100.5998 }, 'สมุทรสงคราม': { lat: 13.4098, lng: 100.0024 },
+        'สมุทรสาคร': { lat: 13.5475, lng: 100.2737 }, 'สิงห์บุรี': { lat: 14.8936, lng: 100.3967 },
+        'สุโขทัย': { lat: 17.0078, lng: 99.8265 }, 'สุพรรณบุรี': { lat: 14.4744, lng: 100.1177 },
+        'สระบุรี': { lat: 14.5289, lng: 100.9118 }, 'อ่างทอง': { lat: 14.5896, lng: 100.4550 },
+        'อุทัยธานี': { lat: 15.3835, lng: 100.0245 }, 'จันทบุรี': { lat: 12.6113, lng: 102.1037 },
+        'ฉะเชิงเทรา': { lat: 13.6904, lng: 101.0779 }, 'ชลบุรี': { lat: 13.3611, lng: 100.9847 },
+        'ตราด': { lat: 12.2428, lng: 102.5175 }, 'ปราจีนบุรี': { lat: 14.0509, lng: 101.3717 },
+        'ระยอง': { lat: 12.6814, lng: 101.2816 }, 'สระแก้ว': { lat: 13.8240, lng: 102.0645 },
+        'กาญจนบุรี': { lat: 14.0041, lng: 99.5483 }, 'ตาก': { lat: 16.8840, lng: 99.1259 },
+        'ประจวบคีรีขันธ์': { lat: 11.8126, lng: 99.7957 }, 'เพชรบุรี': { lat: 13.1112, lng: 99.9398 },
+        'ราชบุรี': { lat: 13.5283, lng: 99.8134 }, 'กระบี่': { lat: 8.0863, lng: 98.9063 },
+        'ชุมพร': { lat: 10.4930, lng: 99.1800 }, 'ตรัง': { lat: 7.5564, lng: 99.6114 },
+        'นครศรีธรรมราช': { lat: 8.4304, lng: 99.9631 }, 'นราธิวาส': { lat: 6.4255, lng: 101.8253 },
+        'ปัตตานี': { lat: 6.8686, lng: 101.2505 }, 'พังงา': { lat: 8.4511, lng: 98.5156 },
+        'พัทลุง': { lat: 7.6167, lng: 100.0740 }, 'ภูเก็ต': { lat: 7.8804, lng: 98.3923 },
+        'ยะลา': { lat: 6.5414, lng: 101.2803 }, 'ระนอง': { lat: 9.9529, lng: 98.6085 },
+        'สงขลา': { lat: 7.1898, lng: 100.5954 }, 'สตูล': { lat: 6.6239, lng: 100.0673 },
+        'สุราษฎร์ธานี': { lat: 9.1342, lng: 99.3334 },
+    }
+
+    // โหลดจังหวัดที่เคยเลือกไว้จาก localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('campaign_province')
+        if (saved && provinces.includes(saved)) {
+            setSelectedProvince(saved)
+        }
+    }, [])
+
+    // ฟังก์ชันเลือกจังหวัด
+    const handleSelectProvince = (province) => {
+        setSelectedProvince(province)
+        setProvinceSearch('')
+        setShowProvinceDropdown(false)
+        localStorage.setItem('campaign_province', province)
+    }
+
+    // กรองจังหวัดตามคำค้นหา
+    const filteredProvinces = provinceSearch.trim()
+        ? provinces.filter(p => p.includes(provinceSearch.trim()))
+        : provinces
+
+    // ปิด dropdown เมื่อคลิกข้างนอก
+    useEffect(() => {
+        const handleClickOutside = () => setShowProvinceDropdown(false)
+        document.addEventListener('click', handleClickOutside)
+        return () => document.removeEventListener('click', handleClickOutside)
+    }, [])
 
     // Data State
     const [reports, setReports] = useState([])
@@ -77,79 +159,9 @@ export default function Campaign() {
         return () => unsub()
     }, [])
 
-    const getFallbackLocation = async () => {
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            const data = await res.json();
-            const lat = data.latitude;
-            const lng = data.longitude;
-            const state = data.region || '';
-            const province = state.replace('Province', '').trim() || 'Unknown';
-            const district = data.city || '';
-            setLocation({ lat, lng, province, district });
-        } catch (error) {
-            console.error('IP Geolocation failed', error);
-            setLocation({ lat: 13.7563, lng: 100.5018, province: 'Bangkok', district: 'Phra Nakhon' }); // Absolute fallback to BKK
-        } finally {
-            setIsLocating(false);
-        }
-    }
-
-    const handleGetLocation = async () => {
-        setIsLocating(true)
-        try {
-            // ใช้ IP-based Geolocation เป็นหลัก (แม่นยำกว่าบน Desktop)
-            const res = await fetch('http://ip-api.com/json/?fields=lat,lon,city,regionName,status')
-            const data = await res.json()
-            if (data.status === 'success') {
-                const lat = data.lat
-                const lng = data.lon
-                // Reverse geocode เพื่อหาชื่อจังหวัด
-                try {
-                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
-                    const geoData = await geoRes.json()
-                    const state = geoData.address?.state || ''
-                    let province = state.replace('Province', '').trim()
-                    let district = geoData.address?.county || geoData.address?.city || data.city || ''
-                    if (!province) province = data.regionName || 'Unknown'
-                    setLocation({ lat, lng, province, district })
-                } catch {
-                    setLocation({ lat, lng, province: data.regionName || 'Unknown', district: data.city || '' })
-                }
-                setIsLocating(false)
-                return
-            }
-            throw new Error('IP lookup failed')
-        } catch (err) {
-            // Fallback: ลอง Browser GPS
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (pos) => {
-                    const lat = pos.coords.latitude
-                    const lng = pos.coords.longitude
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`)
-                        const data = await res.json()
-                        const state = data.address?.state || ''
-                        let province = state.replace('Province', '').trim()
-                        let district = data.address?.county || data.address?.city || ''
-                        if (!province) throw new Error('No province in reverse geocode');
-                        setLocation({ lat, lng, province, district })
-                        setIsLocating(false)
-                    } catch (e) {
-                        console.error('Reverse geocode failed', e)
-                        await getFallbackLocation()
-                    }
-                }, async () => {
-                    console.log('User denied GPS or GPS failed, using IP Geolocation fallback')
-                    await getFallbackLocation()
-                }, {
-                    timeout: 5000
-                })
-            } else {
-                console.log('Browser no GPS support, using IP Geolocation fallback')
-                await getFallbackLocation()
-            }
-        }
+    // ดึงพิกัดจากจังหวัดที่เลือก
+    const getProvinceCoords = (province) => {
+        return provinceCoordinates[province] || { lat: 13.7563, lng: 100.5018 }
     }
 
     const handleImageChange = (e) => {
@@ -159,9 +171,6 @@ export default function Campaign() {
             const reader = new FileReader()
             reader.onloadend = () => setImagePreview(reader.result)
             reader.readAsDataURL(file)
-
-            // Auto detect location when image is selected
-            handleGetLocation()
         }
     }
 
@@ -170,8 +179,8 @@ export default function Campaign() {
         if (!image) {
             return alert('กรุณาอัปโหลดรูปภาพ')
         }
-        if (!location.province || location.province === 'Unknown') {
-            return alert('กำลังตรวจจับตำแหน่ง หรือไม่สามารถระบุตำแหน่งได้ กรุณาอนุญาตให้เบราว์เซอร์เข้าถึง GPS เพื่อระบุจังหวัดอัตโนมัติ')
+        if (!selectedProvince) {
+            return alert('กรุณาเลือกจังหวัดก่อนส่งรายงาน')
         }
         setIsSubmitting(true)
         try {
@@ -179,25 +188,25 @@ export default function Campaign() {
             const snapshot = await uploadBytes(storageRef, image)
             const url = await getDownloadURL(snapshot.ref)
 
+            const coords = getProvinceCoords(selectedProvince)
             await addDoc(collection(db, 'planting_reports'), {
                 userId: currentUser.uid,
                 image_url: url,
                 tree_type: treeType,
                 trees_planted: Number(treesPlanted),
                 notes,
-                latitude: location.lat,
-                longitude: location.lng,
-                province: location.province,
+                latitude: coords.lat,
+                longitude: coords.lng,
+                province: selectedProvince,
                 created_at: serverTimestamp()
             })
 
-            // Reset form
+            // Reset form (จังหวัดไม่ reset เพราะจำไว้ใน localStorage)
             setImage(null)
             setImagePreview(null)
             setTreeType('')
             setTreesPlanted(1)
             setNotes('')
-            setLocation({ lat: '', lng: '', province: '', district: '' })
             alert('บันทึกข้อมูลเรียบร้อยแล้ว!')
 
         } catch (error) {
@@ -367,28 +376,46 @@ export default function Campaign() {
                                 <input type="number" required min="1" value={treesPlanted} onChange={e => setTreesPlanted(e.target.value)} className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-eco-green-500 outline-none" />
                             </div>
 
-                            {/* Auto Location Status */}
-                            <div className="pt-2">
-                                <label className="block text-sm font-medium text-slate-700 mb-2">พิกัดสถานที่ <span className="text-red-500">*</span></label>
-                                {isLocating ? (
-                                    <div className="flex items-center gap-3 p-4 bg-eco-green-50 border border-eco-green-100 rounded-xl text-eco-green-700">
-                                        <div className="w-5 h-5 border-2 border-eco-green-600 border-t-transparent animate-spin rounded-full"></div>
-                                        <span className="font-medium">ระบบกำลังตรวจหาตำแหน่งอัตโนมัติ...</span>
-                                    </div>
-                                ) : location.lat && location.province !== 'Unknown' ? (
-                                    <div className="flex items-center gap-3 p-4 bg-eco-green-50 border border-eco-green-200 rounded-xl">
-                                        <span className="text-2xl">📍</span>
-                                        <div>
-                                            <p className="font-bold text-eco-green-800">{location.province}</p>
-                                            <p className="text-sm text-eco-green-600">{location.district || 'ตำแหน่งที่ตั้งของคุณ'}</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                        <span className="text-2xl opacity-50">📍</span>
-                                        <p className="text-sm text-slate-500 font-medium">ตำแหน่งจะถูกตรวจจับอัตโนมัติเมื่อเลือกรูปภาพ<br /><span className="text-xs text-red-400">* จำเป็นต้องอนุญาต GPS ในเบราว์เซอร์ล่วงหน้า</span></p>
+                            {/* Province Selector */}
+                            <div className="pt-2 relative" onClick={(e) => e.stopPropagation()}>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">จังหวัดที่ปลูก <span className="text-red-500">*</span></label>
+                                {selectedProvince && (
+                                    <div className="flex items-center gap-3 p-3 mb-3 bg-eco-green-50 border border-eco-green-200 rounded-xl">
+                                        <span className="text-xl">📍</span>
+                                        <p className="font-bold text-eco-green-800 grow">{selectedProvince}</p>
+                                        <button type="button" onClick={() => { setSelectedProvince(''); localStorage.removeItem('campaign_province') }} className="text-xs text-slate-400 hover:text-red-500 transition">
+                                            เปลี่ยน
+                                        </button>
                                     </div>
                                 )}
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={provinceSearch}
+                                        onChange={(e) => { setProvinceSearch(e.target.value); setShowProvinceDropdown(true) }}
+                                        onFocus={() => setShowProvinceDropdown(true)}
+                                        placeholder={selectedProvince ? 'ค้นหาเพื่อเปลี่ยนจังหวัด...' : 'พิมพ์ค้นหาจังหวัด...'}
+                                        className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-eco-green-500 outline-none text-sm"
+                                    />
+                                    {showProvinceDropdown && (
+                                        <ul className="absolute z-50 w-full bg-white mt-1 rounded-xl shadow-lg border border-slate-100 max-h-48 overflow-y-auto">
+                                            {filteredProvinces.map(p => (
+                                                <li
+                                                    key={p}
+                                                    onClick={() => handleSelectProvince(p)}
+                                                    className={`px-4 py-2.5 cursor-pointer text-sm transition-colors hover:bg-eco-green-50 ${p === selectedProvince ? 'bg-eco-green-100 font-bold text-eco-green-800' : 'text-slate-700'
+                                                        }`}
+                                                >
+                                                    {p === selectedProvince ? `✅ ${p}` : p}
+                                                </li>
+                                            ))}
+                                            {filteredProvinces.length === 0 && (
+                                                <li className="px-4 py-3 text-sm text-slate-400 text-center">ไม่พบจังหวัดที่ค้นหา</li>
+                                            )}
+                                        </ul>
+                                    )}
+                                </div>
+                                {!selectedProvince && <p className="text-xs text-slate-400 mt-1">💡 จังหวัดที่เลือกจะถูกจำไว้สำหรับครั้งถัดไป</p>}
                             </div>
 
                             {/* Notes */}
@@ -397,7 +424,7 @@ export default function Campaign() {
                                 <textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} placeholder="รายละเอียดโครงการ..." className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-eco-green-500 outline-none resize-none"></textarea>
                             </div>
 
-                            <button type="submit" disabled={isSubmitting || isLocating} className="w-full py-4 bg-eco-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-eco-green-700 transition-all flex justify-center items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed">
+                            <button type="submit" disabled={isSubmitting || !selectedProvince} className="w-full py-4 bg-eco-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-eco-green-700 transition-all flex justify-center items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed">
                                 {isSubmitting ? (
                                     <>
                                         <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
