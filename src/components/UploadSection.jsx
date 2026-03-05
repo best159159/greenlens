@@ -35,7 +35,7 @@ const LocationMarker = ({ position, setPosition, setLatitude, setLongitude }) =>
 const UploadSection = ({ onAnalyze, isAnalyzing }) => {
     const [selectedImage, setSelectedImage] = useState(null)
     const [imagePreview, setImagePreview] = useState(null)
-    const [selectedProvince, setSelectedProvince] = useState('')
+    const [selectedProvince, setSelectedProvince] = useState(() => localStorage.getItem('analyze_province') || '')
     const [provinceSearch, setProvinceSearch] = useState('')
     const [showProvinceSelect, setShowProvinceSelect] = useState(false)
     const [latitude, setLatitude] = useState('')
@@ -69,7 +69,7 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
         'กระบี่', 'ชุมพร', 'ตรัง', 'นครศรีธรรมราช', 'นราธิวาส', 'ปัตตานี', 'พังงา', 'พัทลุง', 'ภูเก็ต', 'ยะลา', 'ระนอง', 'สงขลา', 'สตูล', 'สุราษฎร์ธานี'
     ].sort()
 
-    // พิกัดใจกลางครบทุก 77 จังหวัด
+    // พิกัดใจกลางครบทุก 77 จังหวัดป
     const provinceCoordinates = {
         // ภาคเหนือ
         'เชียงราย': { lat: 19.9105, lng: 99.8406 },
@@ -175,6 +175,7 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
         setSelectedProvince(province)
         setProvinceSearch('')
         setShowProvinceSelect(false)
+        localStorage.setItem('analyze_province', province)
 
         // ตั้งพิกัดและเลื่อนแผนที่
         if (provinceCoordinates[province]) {
@@ -319,25 +320,33 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
                     {/* Location Selection Zone */}
                     <div className="grid md:grid-cols-2 gap-6">
                         {/* Province Selector - Searchable */}
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <div className="relative" onClick={(e) => e.stopPropagation()}>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
                                 เลือกจังหวัด <span className="text-red-500">*</span>
                             </label>
+                            {selectedProvince && (
+                                <div className="flex items-center gap-3 p-3 mb-3 bg-eco-green-50 border border-eco-green-200 rounded-xl">
+                                    <span className="text-xl">📍</span>
+                                    <p className="font-bold text-eco-green-800 grow">{selectedProvince}</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSelectedProvince(''); setProvinceSearch(''); localStorage.removeItem('analyze_province'); }}
+                                        className="text-xs text-slate-400 hover:text-red-500 transition"
+                                    >
+                                        เปลี่ยน
+                                    </button>
+                                </div>
+                            )}
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={provinceSearch}
                                     onChange={(e) => { setProvinceSearch(e.target.value); setShowProvinceSelect(true) }}
                                     onFocus={() => setShowProvinceSelect(true)}
-                                    placeholder={selectedProvince || 'พิมพ์ชื่อจังหวัดเพื่อค้นหา...'}
+                                    placeholder={selectedProvince ? 'พิมพ์ค้นหาเพื่อเปลี่ยนจังหวัด...' : 'พิมพ์ชื่อจังหวัดเพื่อค้นหา...'}
                                     className={`w-full px-4 py-3 rounded-xl border-2 transition-all outline-none text-slate-700 bg-white ${selectedProvince ? 'border-eco-green-400 focus:border-eco-green-500' : 'border-slate-200 focus:border-eco-green-500'
                                         } focus:ring focus:ring-eco-green-200`}
                                 />
-                                {selectedProvince && !provinceSearch && (
-                                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                                        <span className="text-slate-700 font-medium">📍 {selectedProvince}</span>
-                                    </div>
-                                )}
                                 {showProvinceSelect && (
                                     <ul className="absolute z-50 w-full bg-white mt-1 rounded-xl shadow-lg border border-slate-100 max-h-52 overflow-y-auto">
                                         {filteredProvinces.map(p => (
