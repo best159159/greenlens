@@ -22,12 +22,12 @@ const Hero = () => {
                     loop
                     muted
                     playsInline
-                    className="w-full h-full object-cover opacity-60"
+                    className="w-full h-full object-cover opacity-90"
                 >
                     <source src="/video/1.mp4" type="video/mp4" />
                 </video>
                 {/* Overlay for readability */}
-                <div className="absolute inset-0 bg-black/30"></div>
+                <div className="absolute inset-0 bg-black/20"></div>
             </div>
 
             {/* Animated background elements */}

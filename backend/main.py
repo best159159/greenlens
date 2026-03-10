@@ -354,8 +354,9 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
     encoded_image = base64.b64encode(contents).decode("utf-8")
     media_type = file.content_type
 
-    # 2. Fetch Open-Meteo Data (Optional)
+    # 2. Fetch Open-Meteo Data (Optional) — เก็บข้อมูลดิบไว้ส่งให้ Frontend ด้วย
     climate_context_text = ""
+    current_weather_data = None
     if latitude is not None and longitude is not None:
         try:
             import urllib.request
@@ -379,6 +380,16 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 
 คำเตือน: ข้อมูลสภาพอากาศให้ใช้เป็นข้อมูลแวดล้อมเท่านั้น (contextual background) ห้ามใช้ประเมินความเหมาะสมทางการเกษตรแบบตรงตัว ห้ามใช้คัดเลือกพันธุ์ไม้ และห้ามอ้างถึงในการเปลี่ยนแปลงการคำนวณด้านวิทยาศาสตร์ของระบบหลัก
 """
+                    # เก็บข้อมูลดิบไว้ใช้ซ้ำ (ไม่ต้องเรียก API อีกรอบ)
+                    current_weather_data = {
+                        "temperature_c": w.get("temperature_2m"),
+                        "humidity_percent": w.get("relative_humidity_2m"),
+                        "precipitation_mm": w.get("precipitation"),
+                        "wind_speed_kmh": w.get("wind_speed_10m"),
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "source": "Open-Meteo"
+                    }
         except Exception as e:
             print("Error fetching Open-Meteo data:", e)
 
@@ -474,11 +485,24 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 งานของคุณ (วิเคราะห์และตอบกลับเป็น JSON เท่านั้น โครงสร้างตามด้านล่าง ห้ามเพิ่มคีย์อื่น):
 1. surface_context: บรรยายสภาพพื้นผิวที่เห็นจากภาพแบบคร่าวๆ (เช่น ลานคอนกรีต, ที่ดินรกร้าง, พื้นที่ดินทราย)
 2. vegetation_density: ประเมินความหนาแน่นของพืชพรรณเดิมในภาพ (ตัวอย่าง: เบาบาง, ปานกลาง, หนาแน่น, ไม่มี, ไม่ทราบ)
-3. climate_context_summary: อธิบายข้อมูลสภาพอากาศที่ได้รับแบบบรรยายสั้นๆ (อิงตามตัวเลขที่ได้ ห้ามคาดเดาอนาคต)
+3. climate_context_summary: อธิบายข้อมูลสภาพอากาศที่ได้รับแบบบรรยายสั้นๆ (อิงตามตัวเลขที่ได้ ห้ามคาดเดาอนาคต) ให้ระบุตัวเลขอุณหภูมิ ความชื้น ลม ที่ได้รับมาด้วย
 4. environmental_notes: ข้อสังเกตสั้นๆ เกี่ยวกับสภาพแวดล้อม ณ วันนี้
 5. confidence_level: ระดับความมั่นใจในการประเมินภาพ (high / medium / low)
 6. climate_risk_analysis: บทวิเคราะห์ความเสี่ยงด้านสภาพอากาศในระยะยาว (Qualitative Only ดึงจาก profile)
 7. long_term_growth_advisory: คำแนะนำเชิงคุณภาพสำหรับการเติบโตของพืชพรรณระยะยาว (Do NOT select tree species. Do NOT compute scores. Provide qualitative long-term environmental advisory only.)
+8. action_plan: แนะนำขั้นตอนที่ผู้ใช้ควรปฏิบัติ (Step-by-step Action Plan) จำนวน 5-7 ขั้นตอน
+   กฎสำคัญ:
+   - ห้ามเขียนแบบกว้างๆ ทั่วไป ต้องอ้างอิงจากข้อมูลที่ได้รับจริง
+   - ทุกขั้นตอน ต้องระบุ "เพราะอะไร" โดยอิงจากข้อมูล เช่น "เนื่องจากอุณหภูมิปัจจุบันอยู่ที่ X°C และความชื้น Y%" หรือ "จากภาพพบว่าพื้นที่เป็นลักษณะ..."
+   - ตัวอย่างที่ดี: "ปรับปรุงดินโดยเพิ่มอินทรียวัตถุเนื่องจากจากภาพพบว่าพื้นดินค่อนข้างแห้งและมีลักษณะเป็นทรายปนดินลูกรัง ควรใส่ปุ๋ยหมักหรือปุ๋ยคอกราว 2-3 กก./ตร.ม."
+   - ตัวอย่างที่แย่ (ห้ามทำ): "เตรียมดินโดยการไถ" (กว้างเกินไป ไม่มีข้อมูลอ้างอิง)
+   - เรียงลำดับจากง่ายไปยาก: สำรวจ → ปรับปรุงดิน → วางระบบน้ำ → ปลูก → ดูแลระยะยาว
+   - (เป็น array ของ string)
+9. ai_summary: สรุปภาพรวมจาก AI แบบเฉพาะเจาะจง โดยต้อง:
+   - ระบุชื่อจังหวัด, ตัวเลขอุณหภูมิ/ความชื้น/ลม ที่ได้รับ
+   - อ้างอิงสภาพพื้นที่จากรูปภาพ
+   - บอกว่าพื้นที่นี้มีศักยภาพอย่างไร และจุดที่ต้องระวัง
+   - เขียน 3-5 ประโยค เหมือนผู้เชี่ยวชาญด้านการเกษตร/สิ่งแวดล้อมสรุปให้ฟังตัวต่อตัว
 
 รูปแบบ JSON (ตอบกลับแค่คีย์เหล่านี้เท่านั้น ห้ามมี markdown หรือข้อความอื่น):
 {{
@@ -488,7 +512,9 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
   "environmental_notes": "...",
   "confidence_level": "...",
   "climate_risk_analysis": "...",
-  "long_term_growth_advisory": "..."
+  "long_term_growth_advisory": "...",
+  "action_plan": ["ขั้นตอนที่ 1...", "ขั้นตอนที่ 2...", "..."],
+  "ai_summary": "..."
 }}
 """
 
@@ -496,7 +522,7 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
         # 4. Call OpenAI API
         response = client.chat.completions.create(
             model="gpt-5.2",
-            max_completion_tokens=2000,
+            max_completion_tokens=2500,
             messages=[
                 {
                     "role": "user",
@@ -649,6 +675,10 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
         
         if climate_profile:
             ai_result["climate_profile"] = climate_profile
+
+        # ส่งข้อมูลสภาพอากาศปัจจุบัน (ตัวเลข) กลับไปให้ Frontend — ใช้ข้อมูลที่ดึงมาแล้วจากรอบแรก
+        if current_weather_data:
+            ai_result["current_weather"] = current_weather_data
 
         return ai_result
 

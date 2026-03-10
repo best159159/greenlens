@@ -588,7 +588,6 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 - รูปภาพของพื้นที่
 - ข้อมูลสถานที่: จังหวัด {province}, ประเทศไทย
 {climate_context_text}
-{climate_profile_text}
 - แผนที่การเติบโต: ประเมินการเจริญเติบโตที่ projection_year = 1, 5, 10, 20 ปี
 
 งานของคุณ (วิเคราะห์และตอบกลับเป็น JSON เท่านั้น โครงสร้างตามด้านล่าง ห้ามเพิ่มคีย์อื่น):
@@ -599,6 +598,7 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 5. confidence_level: ระดับความมั่นใจในการประเมินภาพ (high / medium / low)
 6. climate_risk_analysis: บทวิเคราะห์ความเสี่ยงด้านสภาพอากาศในระยะยาว (Qualitative Only ดึงจาก profile)
 7. long_term_growth_advisory: คำแนะนำเชิงคุณภาพสำหรับการเติบโตของพืชพรรณระยะยาว (Do NOT select tree species. Do NOT compute scores. Provide qualitative long-term environmental advisory only.)
+8. action_plan: แนะนำขั้นตอนการปฏิบัติที่ควรทำ (Step-by-step Action Plan) ว่าจากข้อมูลและพื้นที่นี้ ผู้ใช้ควรเริ่มต้นทำอะไร 1-2-3 (เป็น array ของ string)
 
 รูปแบบ JSON (ตอบกลับแค่คีย์เหล่านี้เท่านั้น ห้ามมี markdown หรือข้อความอื่น):
 {{
@@ -608,7 +608,8 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
   "environmental_notes": "...",
   "confidence_level": "...",
   "climate_risk_analysis": "...",
-  "long_term_growth_advisory": "..."
+  "long_term_growth_advisory": "...",
+  "action_plan": ["..."]
 }}
 """
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { db, storage } from '../firebase'
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { MapContainer, TileLayer, Popup, Circle } from 'react-leaflet'
 import L from 'leaflet'
