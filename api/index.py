@@ -458,6 +458,46 @@ def build_tree_list_prompt():
 
 
 # ==============================
+# Province-to-Region Mapping
+# ==============================
+def get_region_for_province(province_name):
+    """Maps a Thai province name to its region."""
+    province_regions = {
+        # Northern
+        "เชียงราย": "เหนือ", "เชียงใหม่": "เหนือ", "น่าน": "เหนือ", "พะเยา": "เหนือ",
+        "แพร่": "เหนือ", "แม่ฮ่องสอน": "เหนือ", "ลำปาง": "เหนือ", "ลำพูน": "เหนือ",
+        "อุตรดิตถ์": "เหนือ",
+        # Northeastern (Isan)
+        "กาฬสินธุ์": "ตะวันออกเฉียงเหนือ", "ขอนแก่น": "ตะวันออกเฉียงเหนือ", "ชัยภูมิ": "ตะวันออกเฉียงเหนือ",
+        "นครพนม": "ตะวันออกเฉียงเหนือ", "นครราชสีมา": "ตะวันออกเฉียงเหนือ", "บึงกาฬ": "ตะวันออกเฉียงเหนือ",
+        "บุรีรัมย์": "ตะวันออกเฉียงเหนือ", "มหาสารคาม": "ตะวันออกเฉียงเหนือ", "มุกดาหาร": "ตะวันออกเฉียงเหนือ",
+        "ยโสธร": "ตะวันออกเฉียงเหนือ", "ร้อยเอ็ด": "ตะวันออกเฉียงเหนือ", "เลย": "ตะวันออกเฉียงเหนือ",
+        "ศรีสะเกษ": "ตะวันออกเฉียงเหนือ", "สกลนคร": "ตะวันออกเฉียงเหนือ", "สุรินทร์": "ตะวันออกเฉียงเหนือ",
+        "หนองคาย": "ตะวันออกเฉียงเหนือ", "หนองบัวลำภู": "ตะวันออกเฉียงเหนือ", "อุดรธานี": "ตะวันออกเฉียงเหนือ",
+        "อุบลราชธานี": "ตะวันออกเฉียงเหนือ", "อำนาจเจริญ": "ตะวันออกเฉียงเหนือ",
+        # Central
+        "กรุงเทพมหานคร": "กลาง", "กำแพงเพชร": "กลาง", "ชัยนาท": "กลาง", "นครนายก": "กลาง",
+        "นครปฐม": "กลาง", "นครสวรรค์": "กลาง", "นนทบุรี": "กลาง", "ปทุมธานี": "กลาง",
+        "พระนครศรีอยุธยา": "กลาง", "พิจิตร": "กลาง", "พิษณุโลก": "กลาง", "เพชรบูรณ์": "กลาง",
+        "ลพบุรี": "กลาง", "สมุทรปราการ": "กลาง", "สมุทรสงคราม": "กลาง", "สมุทรสาคร": "กลาง",
+        "สระบุรี": "กลาง", "สิงห์บุรี": "กลาง", "สุโขทัย": "กลาง", "สุพรรณบุรี": "กลาง",
+        "อ่างทอง": "กลาง", "อุทัยธานี": "กลาง",
+        # Eastern
+        "จันทบุรี": "ตะวันออก", "ฉะเชิงเทรา": "ตะวันออก", "ชลบุรี": "ตะวันออก", "ตราด": "ตะวันออก",
+        "ปราจีนบุรี": "ตะวันออก", "ระยอง": "ตะวันออก", "สระแก้ว": "ตะวันออก",
+        # Western
+        "กาญจนบุรี": "ตะวันตก", "ตาก": "ตะวันตก", "ประจวบคีรีขันธ์": "ตะวันตก", "เพชรบุรี": "ตะวันตก",
+        "ราชบุรี": "ตะวันตก",
+        # Southern
+        "กระบี่": "ใต้", "ชุมพร": "ใต้", "ตรัง": "ใต้", "นครศรีธรรมราช": "ใต้",
+        "นราธิวาส": "ใต้", "ปัตตานี": "ใต้", "พังงา": "ใต้", "พัทลุง": "ใต้",
+        "ภูเก็ต": "ใต้", "ยะลา": "ใต้", "ระนอง": "ใต้", "สงขลา": "ใต้",
+        "สตูล": "ใต้", "สุราษฎร์ธานี": "ใต้"
+    }
+    return province_regions.get(province_name, "ไม่ทราบภาค")
+
+
+# ==============================
 # API Endpoints
 # ==============================
 
@@ -476,6 +516,7 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
     media_type = file.content_type
 
     climate_context_text = ""
+    current_weather_data = None
     if latitude is not None and longitude is not None:
         try:
             import urllib.request
@@ -499,6 +540,16 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 
 คำเตือน: ข้อมูลสภาพอากาศให้ใช้เป็นข้อมูลแวดล้อมเท่านั้น (contextual background) ห้ามใช้ประเมินความเหมาะสมทางการเกษตรแบบตรงตัว ห้ามใช้คัดเลือกพันธุ์ไม้ และห้ามอ้างถึงในการเปลี่ยนแปลงการคำนวณด้านวิทยาศาสตร์ของระบบหลัก
 """
+                    # เก็บข้อมูลดิบไว้ใช้ซ้ำ (ไม่ต้องเรียก API อีกรอบ)
+                    current_weather_data = {
+                        "temperature_c": w.get("temperature_2m"),
+                        "humidity_percent": w.get("relative_humidity_2m"),
+                        "precipitation_mm": w.get("precipitation"),
+                        "wind_speed_kmh": w.get("wind_speed_10m"),
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "source": "Open-Meteo"
+                    }
         except Exception as e:
             print("Error fetching Open-Meteo data:", e)
 
@@ -588,17 +639,28 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 - รูปภาพของพื้นที่
 - ข้อมูลสถานที่: จังหวัด {province}, ประเทศไทย
 {climate_context_text}
+{climate_profile_text}
 - แผนที่การเติบโต: ประเมินการเจริญเติบโตที่ projection_year = 1, 5, 10, 20 ปี
 
 งานของคุณ (วิเคราะห์และตอบกลับเป็น JSON เท่านั้น โครงสร้างตามด้านล่าง ห้ามเพิ่มคีย์อื่น):
 1. surface_context: บรรยายสภาพพื้นผิวที่เห็นจากภาพแบบคร่าวๆ (เช่น ลานคอนกรีต, ที่ดินรกร้าง, พื้นที่ดินทราย)
 2. vegetation_density: ประเมินความหนาแน่นของพืชพรรณเดิมในภาพ (ตัวอย่าง: เบาบาง, ปานกลาง, หนาแน่น, ไม่มี, ไม่ทราบ)
-3. climate_context_summary: อธิบายข้อมูลสภาพอากาศที่ได้รับแบบบรรยายสั้นๆ (อิงตามตัวเลขที่ได้ ห้ามคาดเดาอนาคต)
+3. climate_context_summary: อธิบายข้อมูลสภาพอากาศที่ได้รับแบบบรรยายสั้นๆ (อิงตามตัวเลขที่ได้ ห้ามคาดเดาอนาคต) ให้ระบุตัวเลขอุณหภูมิ ความชื้น ลม ที่ได้รับมาด้วย
 4. environmental_notes: ข้อสังเกตสั้นๆ เกี่ยวกับสภาพแวดล้อม ณ วันนี้
 5. confidence_level: ระดับความมั่นใจในการประเมินภาพ (high / medium / low)
 6. climate_risk_analysis: บทวิเคราะห์ความเสี่ยงด้านสภาพอากาศในระยะยาว (Qualitative Only ดึงจาก profile)
 7. long_term_growth_advisory: คำแนะนำเชิงคุณภาพสำหรับการเติบโตของพืชพรรณระยะยาว (Do NOT select tree species. Do NOT compute scores. Provide qualitative long-term environmental advisory only.)
-8. action_plan: แนะนำขั้นตอนการปฏิบัติที่ควรทำ (Step-by-step Action Plan) ว่าจากข้อมูลและพื้นที่นี้ ผู้ใช้ควรเริ่มต้นทำอะไร 1-2-3 (เป็น array ของ string)
+8. action_plan: แนะนำขั้นตอนที่ผู้ใช้ควรปฏิบัติ (Step-by-step Action Plan) จำนวน 5-7 ขั้นตอน
+   กฎสำคัญ:
+   - ห้ามเขียนแบบกว้างๆ ทั่วไป ต้องอ้างอิงจากข้อมูลที่ได้รับจริง
+   - ทุกขั้นตอน ต้องระบุ "เพราะอะไร" โดยอิงจากข้อมูล เช่น "เนื่องจากอุณหภูมิปัจจุบันอยู่ที่ X°C และความชื้น Y%" หรือ "จากภาพพบว่าพื้นที่เป็นลักษณะ..."
+   - เรียงลำดับจากง่ายไปยาก: สำรวจ → ปรับปรุงดิน → วางระบบน้ำ → ปลูก → ดูแลระยะยาว
+   - (เป็น array ของ string)
+9. ai_summary: สรุปภาพรวมจาก AI แบบเฉพาะเจาะจง โดยต้อง:
+   - ระบุชื่อจังหวัด, ตัวเลขอุณหภูมิ/ความชื้น/ลม ที่ได้รับ
+   - อ้างอิงสภาพพื้นที่จากรูปภาพ
+   - บอกว่าพื้นที่นี้มีศักยภาพอย่างไร และจุดที่ต้องระวัง
+   - เขียน 3-5 ประโยค เหมือนผู้เชี่ยวชาญด้านการเกษตร/สิ่งแวดล้อมสรุปให้ฟังตัวต่อตัว
 
 รูปแบบ JSON (ตอบกลับแค่คีย์เหล่านี้เท่านั้น ห้ามมี markdown หรือข้อความอื่น):
 {{
@@ -609,14 +671,15 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
   "confidence_level": "...",
   "climate_risk_analysis": "...",
   "long_term_growth_advisory": "...",
-  "action_plan": ["..."]
+  "action_plan": ["ขั้นตอนที่ 1...", "ขั้นตอนที่ 2...", "..."],
+  "ai_summary": "..."
 }}
 """
 
     try:
         response = client.chat.completions.create(
             model="gpt-5.2",
-            max_completion_tokens=2000,
+            max_completion_tokens=2500,
             messages=[
                 {
                     "role": "user",
@@ -642,37 +705,82 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
 
         ai_result = json.loads(response_text)
 
-        # Scientific Model Layer & Deterministic Tree Selection
+        # Scientific Model Layer & Deterministic Context-Aware Tree Selection
         recommendations = []
         total_co2 = 0
         total_canopy = 0
         total_temp_reduction_min = 0.0
         total_temp_reduction_max = 0.0
 
+        region = get_region_for_province(province)
+        
+        # Analyze surface context for soil type hints
+        surface_lower = ai_result.get("surface_context", "").lower()
+        detected_soil = []
+        if "ทราย" in surface_lower: detected_soil.append("ทราย")
+        if "เหนียว" in surface_lower: detected_soil.append("เหนียว")
+        if "ร่วน" in surface_lower or "ดินทั่วไป" in surface_lower: detected_soil.append("ร่วน")
+        
+        # Climate constraints
+        precip = climate_profile.get("avg_annual_precipitation_mm", 1200) if climate_profile else 1200
+        temp = climate_profile.get("avg_annual_temperature_c", 28) if climate_profile else 28
+
         for category in ["economic", "edible", "conservation"]:
             best_tree = None
             best_score = -1
             best_sci = None
+            
             for tree_data in TREE_DATABASE.get(category, []):
                 sci = compute_scientific_data(tree_data)
-                score = sci["green_potential_score"]
-                if score > best_score:
-                    best_score = score
+                base_score = sci["green_potential_score"]
+                ranking_score = float(base_score)
+                
+                # 1. ภูมิภาค (Region exact match multiplier)
+                suitable_reg = tree_data.get("suitable_regions", [])
+                if suitable_reg:
+                    if "ทุกภาค" in suitable_reg:
+                        ranking_score *= 1.05
+                    elif region in suitable_reg:
+                        ranking_score *= 1.30
+                    else:
+                        ranking_score *= 0.50
+                
+                # 2. ความเหมาะสมของดินจากภาพ (Soil Match)
+                suitable_soils = tree_data.get("suitable_soil_types", [])
+                if detected_soil and suitable_soils:
+                    if any(s in suitable_soils for s in detected_soil):
+                        ranking_score *= 1.25
+                
+                # 3. จัดคู่สภาพอากาศเชิงพื้นที่จริงๆ (Precipitation & Water Req)
+                water_req = tree_data.get("water_requirement", "medium")
+                drought_tol = tree_data.get("drought_tolerance", "medium")
+                
+                if precip < 1100:  # Dry area
+                    if drought_tol == "high": ranking_score *= 1.20
+                    elif drought_tol == "low": ranking_score *= 0.60
+                elif precip > 1800: # Wet area
+                    if water_req == "high": ranking_score *= 1.20
+                    elif drought_tol == "high": ranking_score *= 0.80
+                else: # Moderate area
+                    if water_req == "medium": ranking_score *= 1.10
+                
+                if ranking_score > best_score:
+                    best_score = ranking_score
                     best_tree = tree_data
                     best_sci = sci
             
             if best_tree:
                 drought = best_tree.get("drought_tolerance", "medium")
-                drought_th = {"high": "สูง (ทนทานได้ดี)", "medium": "ปานกลาง", "low": "ต่ำ (ต้องการน้ำสม่ำเสมอ)"}.get(drought, "ปานกลาง")
+                drought_th = {"high": "ทนทานสูง", "medium": "ปานกลาง", "low": "ต่ำ (ต้องการน้ำ)"}.get(drought, "ปานกลาง")
                 
-                reason_text = f"ระบบวิเคราะห์คณิตศาสตร์ให้คะแนนความเหมาะสม (GPS) สูงสุดที่ {best_score} คะแนน โดยอิงจากความสามารถในการทนแล้งระดับ{drought_th} และเข้ากับสภาพอากาศทั่วไป"
-                ben_text = f"เมื่อโตเต็มวัยจะผลิตร่มเงากว่า {best_sci['canopy_coverage_m2']} ตร.ม. ช่วยลดอุณหภูมิรอบข้างได้สูงสุด {best_sci['temperature_reduction_celsius'][1]}°C และดูดซับ CO₂ ได้ {best_sci['co2_absorption_kg_per_year']} กก./ปี"
+                reason_text = f"ระบบคัดเลือกจากฐานข้อมูล: เหมาะสมอย่างมากกับภูมิภาค '{region}' และสภาพฝนเฉลี่ย {round(precip)} มม./ปี โดยมีทนแล้งระดับ{drought_th} (คะแนนความเหมาะสม {round(best_score, 1)})"
+                ben_text = f"เมื่อโตเต็มวัยผลิตร่มเงากว่า {best_sci['canopy_coverage_m2']} ตร.ม. ช่วยลดอุณหภูมิรอบข้างสูงสุด {best_sci['temperature_reduction_celsius'][1]}°C และรับ CO₂ {best_sci['co2_absorption_kg_per_year']} กก./ปี"
 
                 recommendations.append({
                     "category": category,
                     "tree_name": best_tree["name"],
                     "reason": reason_text,
-                    "care_notes": best_tree.get("notes", "ดูแลตามความเหมาะสมของสายพันธุ์"),
+                    "care_notes": best_tree.get("notes", "ดูแลตามความต้องการพื้นฐานตามสายพันธุ์"),
                     "environmental_benefits": ben_text,
                     "scientific_data": best_sci
                 })
@@ -718,6 +826,10 @@ async def analyze_image(file: UploadFile = File(...), province: str = Form(...),
         
         if climate_profile:
             ai_result["climate_profile"] = climate_profile
+
+        # ส่งข้อมูลสภาพอากาศปัจจุบัน (ตัวเลข) กลับไปให้ Frontend
+        if current_weather_data:
+            ai_result["current_weather"] = current_weather_data
 
         return ai_result
 
