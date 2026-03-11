@@ -24,12 +24,18 @@ export default function Campaign() {
     const [image, setImage] = useState(null)
     const [imagePreview, setImagePreview] = useState(null)
     const [treeType, setTreeType] = useState('')
-    const [treesPlanted, setTreesPlanted] = useState(1)
     const [notes, setNotes] = useState('')
     const [selectedProvince, setSelectedProvince] = useState('')
     const [provinceSearch, setProvinceSearch] = useState('')
     const [showProvinceDropdown, setShowProvinceDropdown] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // AI Tree Counting State
+    const [isCountingTrees, setIsCountingTrees] = useState(false)
+    const [aiTreeCount, setAiTreeCount] = useState(null)
+    const [aiConfidence, setAiConfidence] = useState(null)
+    const [aiDescription, setAiDescription] = useState(null)
+    const [countError, setCountError] = useState(null)
 
     // รายชื่อจังหวัดทั้งหมด
     const provinces = [
@@ -164,20 +170,55 @@ export default function Campaign() {
         return provinceCoordinates[province] || { lat: 13.7563, lng: 100.5018 }
     }
 
-    const handleImageChange = (e) => {
+    const handleImageChange = async (e) => {
         const file = e.target.files[0]
         if (file) {
             setImage(file)
+            setAiTreeCount(null)
+            setAiConfidence(null)
+            setAiDescription(null)
+            setCountError(null)
             const reader = new FileReader()
             reader.onloadend = () => setImagePreview(reader.result)
             reader.readAsDataURL(file)
+
+            // Automatically call AI to count trees
+            await countTreesFromImage(file)
+        }
+    }
+
+    const countTreesFromImage = async (file) => {
+        setIsCountingTrees(true)
+        setCountError(null)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+
+            const response = await fetch('http://localhost:8000/count-trees', {
+                method: 'POST',
+                body: formData
+            })
+
+            if (!response.ok) {
+                throw new Error('AI ไม่สามารถวิเคราะห์รูปภาพได้')
+            }
+
+            const result = await response.json()
+            setAiTreeCount(result.tree_count)
+            setAiConfidence(result.confidence)
+            setAiDescription(result.description)
+        } catch (error) {
+            console.error('Error counting trees:', error)
+            setCountError('ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองอีกครั้ง')
+        } finally {
+            setIsCountingTrees(false)
         }
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!image) {
-            return alert('กรุณาอัปโหลดรูปภาพ')
+        if (!image || aiTreeCount === null) {
+            return alert('กรุณาอัปโหลดรูปภาพและรอให้ AI วิเคราะห์จำนวนต้นไม้ก่อน')
         }
         if (!selectedProvince) {
             return alert('กรุณาเลือกจังหวัดก่อนส่งรายงาน')
@@ -193,7 +234,10 @@ export default function Campaign() {
                 userId: currentUser.uid,
                 image_url: url,
                 tree_type: treeType,
-                trees_planted: Number(treesPlanted),
+                trees_planted: aiTreeCount,
+                ai_verified: true,
+                ai_confidence: aiConfidence,
+                ai_description: aiDescription,
                 notes,
                 latitude: coords.lat,
                 longitude: coords.lng,
@@ -205,7 +249,10 @@ export default function Campaign() {
             setImage(null)
             setImagePreview(null)
             setTreeType('')
-            setTreesPlanted(1)
+            setAiTreeCount(null)
+            setAiConfidence(null)
+            setAiDescription(null)
+            setCountError(null)
             setNotes('')
             alert('บันทึกข้อมูลเรียบร้อยแล้ว!')
 
@@ -350,7 +397,8 @@ export default function Campaign() {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Photo Upload */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">อัปโหลดรูปภาพ <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">อัปโหลดรูปภาพต้นไม้ที่ปลูก <span className="text-red-500">*</span></label>
+                                <p className="text-xs text-slate-400 mb-2">🤖 AI จะวิเคราะห์นับจำนวนต้นไม้จากรูปโดยอัตโนมัติ</p>
                                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center relative hover:bg-slate-50 transition-colors cursor-pointer">
                                     <input type="file" required accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                                     {imagePreview ? (
@@ -358,11 +406,62 @@ export default function Campaign() {
                                     ) : (
                                         <div className="py-6 text-slate-500">
                                             <span className="text-3xl block mb-2">📸</span>
-                                            คลิกเพื่อเลือกสถานที่ปลูก
+                                            คลิกเพื่อเลือกรูปต้นไม้ที่ปลูก
                                         </div>
                                     )}
                                 </div>
                             </div>
+
+                            {/* AI Tree Count Result */}
+                            {isCountingTrees && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 animate-pulse">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent animate-spin rounded-full"></div>
+                                        <div>
+                                            <p className="font-semibold text-blue-800">🤖 AI กำลังนับต้นไม้...</p>
+                                            <p className="text-xs text-blue-600">กรุณารอสักครู่ ระบบกำลังวิเคราะห์รูปภาพ</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {aiTreeCount !== null && !isCountingTrees && (
+                                <div className="bg-eco-green-50 border border-eco-green-200 rounded-xl p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-bold text-eco-green-800 text-lg">🌳 AI นับได้: {aiTreeCount} ต้น</p>
+                                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                            aiConfidence === 'high' ? 'bg-green-100 text-green-700' :
+                                            aiConfidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'
+                                        }`}>
+                                            {aiConfidence === 'high' ? '✅ มั่นใจสูง' :
+                                             aiConfidence === 'medium' ? '⚠️ มั่นใจปานกลาง' :
+                                             '❓ มั่นใจต่ำ'}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-slate-600 bg-white/60 rounded-lg p-2">💬 {aiDescription}</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => image && countTreesFromImage(image)}
+                                        className="text-xs text-eco-green-600 hover:text-eco-green-800 underline transition-colors"
+                                    >
+                                        🔄 วิเคราะห์ใหม่อีกครั้ง
+                                    </button>
+                                </div>
+                            )}
+
+                            {countError && !isCountingTrees && (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                                    <p className="text-red-700 font-medium">❌ {countError}</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => image && countTreesFromImage(image)}
+                                        className="text-xs text-red-600 hover:text-red-800 underline mt-2 transition-colors"
+                                    >
+                                        🔄 ลองอีกครั้ง
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Tree Meta */}
                             <div>
@@ -370,11 +469,7 @@ export default function Campaign() {
                                 <input type="text" value={treeType} onChange={e => setTreeType(e.target.value)} placeholder="เช่น ยางนา, ตะเคียน, พะยูง" className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-eco-green-500 outline-none" />
                             </div>
 
-                            {/* Quantity */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">จำนวนต้นที่ปลูก <span className="text-red-500">*</span></label>
-                                <input type="number" required min="1" value={treesPlanted} onChange={e => setTreesPlanted(e.target.value)} className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-eco-green-500 outline-none" />
-                            </div>
+
 
                             {/* Province Selector */}
                             <div className="pt-2 relative" onClick={(e) => e.stopPropagation()}>
@@ -424,7 +519,7 @@ export default function Campaign() {
                                 <textarea rows="3" value={notes} onChange={e => setNotes(e.target.value)} placeholder="รายละเอียดโครงการ..." className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-eco-green-500 outline-none resize-none"></textarea>
                             </div>
 
-                            <button type="submit" disabled={isSubmitting || !selectedProvince} className="w-full py-4 bg-eco-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-eco-green-700 transition-all flex justify-center items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed">
+                            <button type="submit" disabled={isSubmitting || !selectedProvince || aiTreeCount === null || isCountingTrees} className="w-full py-4 bg-eco-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-eco-green-700 transition-all flex justify-center items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed">
                                 {isSubmitting ? (
                                     <>
                                         <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
