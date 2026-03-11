@@ -851,3 +851,90 @@ async def calculate_plan(req: dict):
         "planting_plan_summary": active_summary,
         "stress_mode_active": ecosystem_stress_mode
     }
+
+
+@app.post("/api/count-trees")
+async def count_trees(file: UploadFile = File(...)):
+    """Analyze an uploaded image to count the number of trees using AI Vision.
+    
+    This endpoint is used by the Campaign page to verify tree planting reports.
+    Instead of letting users self-report tree counts (which can be faked),
+    the AI analyzes the photo and provides a verified count.
+    """
+    if not client:
+        raise HTTPException(status_code=500, detail="OpenAI API Key not found.")
+
+    try:
+        # 1. Read and encode image
+        contents = await file.read()
+        encoded_image = base64.b64encode(contents).decode("utf-8")
+        media_type = file.content_type
+
+        # 2. Build the prompt for tree counting
+        prompt = """คุณคือ AI ผู้เชี่ยวชาญด้านการนับต้นไม้จากรูปภาพ
+
+งานของคุณ: นับจำนวนต้นไม้ที่เห็นในรูปภาพนี้อย่างแม่นยำที่สุด
+
+กฎการนับ:
+1. นับเฉพาะต้นไม้ที่มองเห็นชัดเจน (ต้นไม้ที่ปลูกใหม่ กล้าไม้ หรือต้นไม้ใหญ่)
+2. หากเห็นกล้าไม้ในถุงดำหรือกระถาง ให้นับแต่ละถุง/กระถางเป็น 1 ต้น
+3. หากเห็นต้นไม้ที่ปลูกเรียงแถว ให้นับทีละต้น
+4. หากมีต้นไม้ทับซ้อนกัน ให้ประมาณการอย่างระมัดระวัง
+5. หากไม่เห็นต้นไม้เลยในรูป ให้ตอบ 0
+6. หากรูปไม่ชัดหรือไม่สามารถนับได้แม่นยำ ให้ประมาณและระบุ confidence เป็น "low"
+
+ตอบกลับเป็น JSON เท่านั้น (ห้ามมี markdown หรือข้อความอื่น):
+{
+  "tree_count": <จำนวนต้นไม้ที่นับได้ (integer)>,
+  "confidence": "<high/medium/low>",
+  "description": "<อธิบายสั้นๆ ว่าเห็นอะไรในรูป เช่น 'เห็นกล้าไม้ในถุงดำ 5 ถุง วางเรียงบนพื้นดิน' เขียนเป็นภาษาไทย>"
+}"""
+
+        # 3. Call OpenAI API with vision
+        response = client.chat.completions.create(
+            model="gpt-5.2",
+            max_completion_tokens=500,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{media_type};base64,{encoded_image}"
+                            }
+                        }
+                    ]
+                }
+            ]
+        )
+
+        # 4. Parse AI response
+        response_text = response.choices[0].message.content
+
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+
+        result = json.loads(response_text)
+
+        # Validate and sanitize
+        tree_count = max(0, int(result.get("tree_count", 0)))
+        confidence = result.get("confidence", "medium")
+        if confidence not in ["high", "medium", "low"]:
+            confidence = "medium"
+        description = result.get("description", "ไม่สามารถระบุรายละเอียดได้")
+
+        return {
+            "tree_count": tree_count,
+            "confidence": confidence,
+            "description": description
+        }
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองอีกครั้ง")
+    except Exception as e:
+        print(f"Error counting trees: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ: {str(e)}")

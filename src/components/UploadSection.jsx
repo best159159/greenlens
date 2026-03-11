@@ -460,12 +460,12 @@ const UploadSection = ({ onAnalyze, isAnalyzing }) => {
                                 type="button"
                                 onClick={async () => {
                                     try {
-                                        // ใช้ IP-based Geolocation แทน GPS (แม่นยำกว่าบน Desktop)
-                                        const res = await fetch('http://ip-api.com/json/?fields=lat,lon,city,regionName,status')
+                                        // ใช้ HTTPS IP-based Geolocation (รองรับทั้ง localhost และ HTTPS deploy)
+                                        const res = await fetch('https://ipapi.co/json/')
                                         const data = await res.json()
-                                        if (data.status === 'success') {
-                                            const lat = data.lat
-                                            const lng = data.lon
+                                        if (data.latitude && data.longitude) {
+                                            const lat = data.latitude
+                                            const lng = data.longitude
                                             setLatitude(lat.toFixed(6))
                                             setLongitude(lng.toFixed(6))
                                             setMarkerPosition({ lat, lng })

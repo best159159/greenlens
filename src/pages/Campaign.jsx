@@ -194,7 +194,12 @@ export default function Campaign() {
             const formData = new FormData()
             formData.append('file', file)
 
-            const response = await fetch('http://localhost:8000/count-trees', {
+            const isDev = import.meta.env.DEV
+            const apiUrl = isDev
+                ? 'http://localhost:8000/count-trees'
+                : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/analyze', '/count-trees') : '/api/count-trees')
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 body: formData
             })
