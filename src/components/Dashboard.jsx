@@ -67,7 +67,11 @@ const Dashboard = ({ data }) => {
                 if (isDev) {
                     apiUrl = 'http://localhost:8000/calculate_plan'
                 } else if (import.meta.env.VITE_API_URL) {
-                    apiUrl = import.meta.env.VITE_API_URL.replace('/analyze', '/calculate_plan')
+                    if (import.meta.env.VITE_API_URL.includes('/analyze')) {
+                        apiUrl = import.meta.env.VITE_API_URL.replace(/\/analyze$/, '/calculate_plan')
+                    } else {
+                        apiUrl = import.meta.env.VITE_API_URL.replace(/\/$/, '') + '/calculate_plan'
+                    }
                 }
 
                 const res = await fetch(apiUrl, {
@@ -101,7 +105,11 @@ const Dashboard = ({ data }) => {
                 if (isDev) {
                     apiUrl = 'http://localhost:8000/search_trees'
                 } else if (import.meta.env.VITE_API_URL) {
-                    apiUrl = import.meta.env.VITE_API_URL.replace('/analyze', '/search_trees')
+                    if (import.meta.env.VITE_API_URL.includes('/analyze')) {
+                        apiUrl = import.meta.env.VITE_API_URL.replace(/\/analyze$/, '/search_trees')
+                    } else {
+                        apiUrl = import.meta.env.VITE_API_URL.replace(/\/$/, '') + '/search_trees'
+                    }
                 }
                 const res = await fetch(apiUrl)
                 if (res.ok) {

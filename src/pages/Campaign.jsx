@@ -195,9 +195,16 @@ export default function Campaign() {
             formData.append('file', file)
 
             const isDev = import.meta.env.DEV
-            const apiUrl = isDev
-                ? 'http://localhost:8000/count-trees'
-                : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/analyze', '/count-trees') : '/api/count-trees')
+            let apiUrl = '/api/count-trees'
+            if (isDev) {
+                apiUrl = 'http://localhost:8000/count-trees'
+            } else if (import.meta.env.VITE_API_URL) {
+                if (import.meta.env.VITE_API_URL.includes('/analyze')) {
+                    apiUrl = import.meta.env.VITE_API_URL.replace(/\/analyze$/, '/count-trees')
+                } else {
+                    apiUrl = import.meta.env.VITE_API_URL.replace(/\/$/, '') + '/count-trees'
+                }
+            }
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
