@@ -344,6 +344,39 @@ def read_root():
     return {"message": "GreenLens AI — Environmental Decision Support System is running."}
 
 
+@app.get("/search_trees")
+async def search_trees(q: str = "", category: str = ""):
+    """ค้นหาต้นไม้จาก Tree Database พร้อม scientific data
+    
+    - q: คำค้นหา (ชื่อไทย/อังกฤษ/วิทยาศาสตร์) — ถ้าว่างจะคืนทั้งหมด
+    - category: filter ตามประเภท (economic/edible/conservation) — ถ้าว่างจะค้นทุกประเภท
+    """
+    results = []
+    categories = [category] if category in ["economic", "edible", "conservation"] else ["economic", "edible", "conservation"]
+    
+    q_lower = q.lower().strip()
+    
+    for cat in categories:
+        for tree_data in TREE_DATABASE.get(cat, []):
+            # ถ้าไม่มี query → เอาทั้งหมด, ถ้ามี → partial match
+            if q_lower == "" or \
+               q_lower in tree_data["name"].lower() or \
+               q_lower in tree_data["english_name"].lower() or \
+               q_lower in tree_data["scientific_name"].lower():
+                sci = compute_scientific_data(tree_data)
+                results.append({
+                    "category": cat,
+                    "tree_name": tree_data["name"],
+                    "english_name": tree_data["english_name"],
+                    "scientific_name": tree_data["scientific_name"],
+                    "notes": tree_data.get("notes", ""),
+                    "suitable_regions": tree_data.get("suitable_regions", []),
+                    "scientific_data": sci
+                })
+    
+    return {"trees": results, "total": len(results)}
+
+
 @app.post("/analyze")
 async def analyze_image(file: UploadFile = File(...), province: str = Form(...), latitude: float = Form(None), longitude: float = Form(None)):
     if not client:

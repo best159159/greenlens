@@ -96,7 +96,7 @@ export default function History() {
                                         {item.ai_surface_context || item.full_result?.surface_context || 'ไม่พบข้อมูลบริบทพื้นที่'}
                                     </h3>
                                     <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                                        ต้นไม้แนะนำ: {item.recommended_trees || item.full_result?.recommendations?.map(r => r.tree_name).join(', ') || '-'}
+                                        ต้นไม้แนะนำ: {item.recommended_trees || (Array.isArray(item.full_result?.recommendations) ? item.full_result.recommendations.map(r => r?.tree_name || r).join(', ') : '-')}
                                     </p>
                                     <button
                                         onClick={() => navigate('/result', { state: { result: item.full_result } })}

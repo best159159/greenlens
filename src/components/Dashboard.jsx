@@ -34,6 +34,24 @@ const Dashboard = ({ data }) => {
     const [projectionYear, setProjectionYear] = useState(20)
     const [stressMode, setStressMode] = useState(false)
     const [siteArea, setSiteArea] = useState(1000)
+    // === Search Tree Modal States ===
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [searchCategory, setSearchCategory] = useState('all')
+    const [searchResults, setSearchResults] = useState([])
+    const [isSearching, setIsSearching] = useState(false)
+    const [allTrees, setAllTrees] = useState([])
+    const [hasLoadedAll, setHasLoadedAll] = useState(false)
+    const [localRecommendations, setLocalRecommendations] = useState([])
+
+    useEffect(() => {
+        if (Array.isArray(data?.recommendations)) {
+            setLocalRecommendations(data.recommendations)
+            setSelectedTreeIndex(0)
+        } else {
+            setLocalRecommendations([])
+        }
+    }, [data])
 
     useEffect(() => {
         if (plantingPlan.length === 0) {
@@ -71,6 +89,88 @@ const Dashboard = ({ data }) => {
         const timeoutId = setTimeout(() => fetchPlanSummary(), 300) // debounce API call
         return () => clearTimeout(timeoutId)
     }, [plantingPlan, projectionYear, stressMode, siteArea])
+
+    // === Load all trees when modal opens ===
+    useEffect(() => {
+        if (!isSearchOpen || hasLoadedAll) return
+        const loadAllTrees = async () => {
+            setIsSearching(true)
+            try {
+                const isDev = import.meta.env.DEV
+                let apiUrl = '/api/search_trees'
+                if (isDev) {
+                    apiUrl = 'http://localhost:8000/search_trees'
+                } else if (import.meta.env.VITE_API_URL) {
+                    apiUrl = import.meta.env.VITE_API_URL.replace('/analyze', '/search_trees')
+                }
+                const res = await fetch(apiUrl)
+                if (res.ok) {
+                    const data = await res.json()
+                    setAllTrees(data.trees || [])
+                    setSearchResults(data.trees || [])
+                    setHasLoadedAll(true)
+                }
+            } catch (err) {
+                console.error('Failed to load trees:', err)
+            } finally {
+                setIsSearching(false)
+            }
+        }
+        loadAllTrees()
+    }, [isSearchOpen, hasLoadedAll])
+
+    // === Filter trees locally (instant) ===
+    useEffect(() => {
+        if (!hasLoadedAll) return
+        const q = searchQuery.toLowerCase().trim()
+        let filtered = allTrees
+        if (searchCategory !== 'all') {
+            filtered = filtered.filter(t => t.category === searchCategory)
+        }
+        if (q) {
+            filtered = filtered.filter(t =>
+                t.tree_name.toLowerCase().includes(q) ||
+                t.english_name.toLowerCase().includes(q) ||
+                t.scientific_name.toLowerCase().includes(q)
+            )
+        }
+        setSearchResults(filtered)
+    }, [searchQuery, searchCategory, allTrees, hasLoadedAll])
+
+    const viewSearchTreeDetails = (tree) => {
+        const newRec = {
+            category: tree.category,
+            tree_name: tree.tree_name,
+            reason: `คุณเลือกดูข้อมูลของต้น${tree.tree_name} จากฐานข้อมูลพันธุ์ไม้แบบกำหนดเอง`,
+            environmental_benefits: tree.scientific_data ? `เมื่อโตเต็มวัยรับ CO₂ ได้ ${Number(tree.scientific_data.co2_absorption_kg_per_year).toFixed(1)} กก./ปี และสร้างร่มเงาประมาณ ${Number(tree.scientific_data.canopy_coverage_m2).toFixed(1)} ตร.ม.` : 'ไม่มีข้อมูลการคำนวณ',
+            care_notes: tree.notes || 'รดน้ำและดูแลตามสภาพสายพันธุ์',
+            scientific_data: tree.scientific_data
+        }
+
+        const existIdx = localRecommendations.findIndex(r => r.tree_name === tree.tree_name && r.category === tree.category)
+        if (existIdx >= 0) {
+            setSelectedTreeIndex(existIdx)
+        } else {
+            const nextIdx = localRecommendations.length
+            setLocalRecommendations(prev => [...prev, newRec])
+            setSelectedTreeIndex(nextIdx)
+        }
+
+        setIsSearchOpen(false)
+        setTimeout(() => {
+            const chartSection = document.getElementById('tree-detail-chart-section')
+            if (chartSection) chartSection.scrollIntoView({ behavior: 'smooth' })
+        }, 300)
+    }
+
+    const addSearchTreeToPlan = (tree) => {
+        const sci = tree.scientific_data
+        if (!sci) return
+        addToPlan({
+            category: tree.category,
+            tree_name: tree.tree_name
+        }, sci)
+    }
 
     const addToPlan = (tree, sci) => {
         const tree_id = `${tree.category}-${tree.tree_name}`
@@ -114,7 +214,6 @@ const Dashboard = ({ data }) => {
         vegetation_density,
         climate_context_summary,
         environmental_notes,
-        recommendations = [],
         environmental_impact = {},
         confidence_level,
         climate_profile,
@@ -122,8 +221,9 @@ const Dashboard = ({ data }) => {
         long_term_growth_advisory
     } = data
 
-    const selectedTree = recommendations.length > 0 ? recommendations[selectedTreeIndex] : null
+    const selectedTree = localRecommendations.length > 0 ? localRecommendations[selectedTreeIndex] : null
     const sciData = selectedTree?.scientific_data
+
 
     // Chart: ข้อมูลรายเดือนจาก scientific_data
     const monthlyData = sciData?.monthly_co2_data || []
@@ -132,7 +232,7 @@ const Dashboard = ({ data }) => {
         labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
         datasets: [
             {
-                label: `CO₂ ดูดซับ - ${selectedTree.tree_name}`,
+                label: `CO₂ ดูดซับ - ${selectedTree?.tree_name || ''}`,
                 data: monthlyData,
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -378,7 +478,7 @@ const Dashboard = ({ data }) => {
                 <div className="mb-8">
                     <h3 className="text-2xl font-bold text-slate-800 mb-6">🌳 พันธุ์ไม้ที่แนะนำ</h3>
                     <div className="grid md:grid-cols-3 gap-6">
-                        {recommendations.map((tree, idx) => {
+                        {localRecommendations.map((tree, idx) => {
                             const sci = tree.scientific_data
                             return (
                                 <div
@@ -446,115 +546,130 @@ const Dashboard = ({ data }) => {
                     </div>
                 </div>
 
+                {/* ===== Search Tree Button ===== */}
+                <div className="mt-8 mb-12 text-center">
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-indigo-600 hover:to-purple-600 transition-all hover:-translate-y-1 shadow-xl hover:shadow-indigo-500/40 relative overflow-hidden group"
+                    >
+                        <span className="absolute w-0 h-0 transition-all duration-500 ease-out bg-white rounded-full group-hover:w-56 group-hover:h-56 opacity-10"></span>
+                        <span className="relative text-2xl">🔍</span>
+                        <span className="relative z-10">ค้นหาต้นไม้เพิ่มเติมจากฐานข้อมูล</span>
+                    </button>
+                    <p className="text-sm text-slate-400 mt-2">ค้นหาจากฐานข้อมูลพันธุ์ไม้ 15 สายพันธุ์ เพื่อเพิ่มลงแผนปลูก</p>
+                </div>
+
                 {/* ===== 4. Selected Tree Detail + Chart ===== */}
-                <div className="glass-card rounded-2xl p-8 bg-white/80 backdrop-blur border border-slate-100 mb-12">
-                    <div className="grid md:grid-cols-2 gap-8 items-start">
-                        {/* Left: Info */}
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <span className="text-3xl">
-                                    {selectedTree.category === 'economic' ? '💰' : selectedTree.category === 'edible' ? '🍎' : '🌳'}
-                                </span>
-                                <div>
-                                    <h3 className="text-3xl font-bold text-slate-800">{selectedTree.tree_name}</h3>
-                                    {sciData && (
-                                        <p className="text-sm text-slate-400 italic">{sciData.english_name} • {sciData.scientific_name}</p>
-                                    )}
+                {selectedTree && (
+                    <div id="tree-detail-chart-section" className="glass-card rounded-2xl p-8 bg-white/80 backdrop-blur border border-slate-100 mb-12">
+                        <div className="grid md:grid-cols-2 gap-8 items-start">
+                            {/* Left: Info */}
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <span className="text-3xl">
+                                        {selectedTree.category === 'economic' ? '💰' : selectedTree.category === 'edible' ? '🍎' : '🌳'}
+                                    </span>
+                                    <div>
+                                        <h3 className="text-3xl font-bold text-slate-800">{selectedTree.tree_name}</h3>
+                                        {sciData && (
+                                            <p className="text-sm text-slate-400 italic">{sciData.english_name} • {sciData.scientific_name}</p>
+                                        )}
+                                    </div>
                                 </div>
+
+                                <div className="space-y-4">
+                                    <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                                        <h5 className="font-semibold text-indigo-900 mb-1 flex items-center gap-2">
+                                            <span>🤔</span> ทำไมถึงเหมาะกับที่นี่?
+                                        </h5>
+                                        <p className="text-indigo-800 text-sm leading-relaxed">{selectedTree.reason}</p>
+                                    </div>
+                                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                                        <h5 className="font-semibold text-emerald-900 mb-1 flex items-center gap-2">
+                                            <span>🌍</span> ประโยชน์ต่อสิ่งแวดล้อม
+                                        </h5>
+                                        <p className="text-emerald-800 text-sm leading-relaxed">{selectedTree.environmental_benefits}</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <h5 className="font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                                            <span>🛠️</span> คู่มือการดูแล
+                                        </h5>
+                                        <p className="text-slate-600 text-sm leading-relaxed">{selectedTree.care_notes}</p>
+                                    </div>
+                                </div>
+
+                                {/* Scientific Stats */}
+                                {sciData && (
+                                    <div className="grid grid-cols-2 gap-3 mt-6">
+                                        <div className="text-center p-3 bg-eco-green-50 rounded-lg border border-eco-green-100">
+                                            <div className="text-2xl font-bold text-eco-green-600">{Number(sciData.co2_absorption_kg_per_year).toFixed(1)}</div>
+                                            <div className="text-xs text-slate-600">kg CO₂/ปี</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-eco-blue-50 rounded-lg border border-eco-blue-100">
+                                            <div className="text-xl font-bold text-eco-blue-600">
+                                                {Array.isArray(sciData.temperature_reduction_celsius)
+                                                    ? `-${Number(sciData.temperature_reduction_celsius[0]).toFixed(1)}~${Number(sciData.temperature_reduction_celsius[1]).toFixed(1)}`
+                                                    : `-${Number(sciData.temperature_reduction_celsius).toFixed(1)}`}°C
+                                            </div>
+                                            <div className="text-xs text-slate-600">ลดอุณหภูมิ</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                            <div className="text-2xl font-bold text-emerald-600">{Number(sciData.canopy_coverage_m2).toFixed(1)} m²</div>
+                                            <div className="text-xs text-slate-600">พื้นที่ร่มเงา</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-100">
+                                            <div className="text-2xl font-bold text-purple-600">{sciData.green_potential_score}</div>
+                                            <div className="text-xs text-slate-600">Green Score</div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                                    <h5 className="font-semibold text-indigo-900 mb-1 flex items-center gap-2">
-                                        <span>🤔</span> ทำไมถึงเหมาะกับที่นี่?
-                                    </h5>
-                                    <p className="text-indigo-800 text-sm leading-relaxed">{selectedTree.reason}</p>
-                                </div>
-                                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                                    <h5 className="font-semibold text-emerald-900 mb-1 flex items-center gap-2">
-                                        <span>🌍</span> ประโยชน์ต่อสิ่งแวดล้อม
-                                    </h5>
-                                    <p className="text-emerald-800 text-sm leading-relaxed">{selectedTree.environmental_benefits}</p>
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <h5 className="font-semibold text-slate-700 mb-1 flex items-center gap-2">
-                                        <span>🛠️</span> คู่มือการดูแล
-                                    </h5>
-                                    <p className="text-slate-600 text-sm leading-relaxed">{selectedTree.care_notes}</p>
-                                </div>
+                            {/* Right: Chart */}
+                            <div>
+                                <h4 className="text-xl font-bold text-slate-800 mb-2">
+                                    📈 กราฟดูดซับ CO₂ รายเดือน
+                                </h4>
+                                <p className="text-slate-500 text-sm mb-4">
+                                    ค่าประมาณการรายเดือน (หน่วย: กิโลกรัม) — อ้างอิงจากฐานข้อมูลพรรณไม้
+                                </p>
+                                {monthlyData.length > 0 ? (
+                                    <div className="h-64">
+                                        <Line ref={chartRef} data={chartData} options={chartOptions} />
+                                    </div>
+                                ) : (
+                                    <div className="h-64 flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                        <p className="text-slate-400">ไม่พบข้อมูลกราฟสำหรับต้นไม้นี้</p>
+                                    </div>
+                                )}
+
+                                {/* Monthly Stats */}
+                                {monthlyData.length > 0 && (
+                                    <div className="mt-4 grid grid-cols-3 gap-3">
+                                        <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-lg font-bold text-eco-green-600">
+                                                {monthlyData.reduce((a, b) => a + b, 0).toFixed(1)}
+                                            </div>
+                                            <div className="text-xs text-slate-600">รวมทั้งปี (kg)</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-lg font-bold text-eco-green-600">
+                                                {Math.max(...monthlyData).toFixed(1)}
+                                            </div>
+                                            <div className="text-xs text-slate-600">สูงสุด/เดือน</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-lg font-bold text-eco-green-600">
+                                                {(monthlyData.reduce((a, b) => a + b, 0) / 12).toFixed(1)}
+                                            </div>
+                                            <div className="text-xs text-slate-600">เฉลี่ย/เดือน</div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-
-                            {/* Scientific Stats */}
-                            {sciData && (
-                                <div className="grid grid-cols-2 gap-3 mt-6">
-                                    <div className="text-center p-3 bg-eco-green-50 rounded-lg border border-eco-green-100">
-                                        <div className="text-2xl font-bold text-eco-green-600">{Number(sciData.co2_absorption_kg_per_year).toFixed(1)}</div>
-                                        <div className="text-xs text-slate-600">kg CO₂/ปี</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-eco-blue-50 rounded-lg border border-eco-blue-100">
-                                        <div className="text-xl font-bold text-eco-blue-600">
-                                            {Array.isArray(sciData.temperature_reduction_celsius)
-                                                ? `-${Number(sciData.temperature_reduction_celsius[0]).toFixed(1)}~${Number(sciData.temperature_reduction_celsius[1]).toFixed(1)}`
-                                                : `-${Number(sciData.temperature_reduction_celsius).toFixed(1)}`}°C
-                                        </div>
-                                        <div className="text-xs text-slate-600">ลดอุณหภูมิ</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                                        <div className="text-2xl font-bold text-emerald-600">{Number(sciData.canopy_coverage_m2).toFixed(1)} m²</div>
-                                        <div className="text-xs text-slate-600">พื้นที่ร่มเงา</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                        <div className="text-2xl font-bold text-purple-600">{sciData.green_potential_score}</div>
-                                        <div className="text-xs text-slate-600">Green Score</div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right: Chart */}
-                        <div>
-                            <h4 className="text-xl font-bold text-slate-800 mb-2">
-                                📈 กราฟดูดซับ CO₂ รายเดือน
-                            </h4>
-                            <p className="text-slate-500 text-sm mb-4">
-                                ค่าประมาณการรายเดือน (หน่วย: กิโลกรัม) — อ้างอิงจากฐานข้อมูลพรรณไม้
-                            </p>
-                            {monthlyData.length > 0 ? (
-                                <div className="h-64">
-                                    <Line ref={chartRef} data={chartData} options={chartOptions} />
-                                </div>
-                            ) : (
-                                <div className="h-64 flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                    <p className="text-slate-400">ไม่พบข้อมูลกราฟสำหรับต้นไม้นี้</p>
-                                </div>
-                            )}
-
-                            {/* Monthly Stats */}
-                            {monthlyData.length > 0 && (
-                                <div className="mt-4 grid grid-cols-3 gap-3">
-                                    <div className="text-center p-3 bg-slate-50 rounded-lg">
-                                        <div className="text-lg font-bold text-eco-green-600">
-                                            {monthlyData.reduce((a, b) => a + b, 0).toFixed(1)}
-                                        </div>
-                                        <div className="text-xs text-slate-600">รวมทั้งปี (kg)</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-slate-50 rounded-lg">
-                                        <div className="text-lg font-bold text-eco-green-600">
-                                            {Math.max(...monthlyData).toFixed(1)}
-                                        </div>
-                                        <div className="text-xs text-slate-600">สูงสุด/เดือน</div>
-                                    </div>
-                                    <div className="text-center p-3 bg-slate-50 rounded-lg">
-                                        <div className="text-lg font-bold text-eco-green-600">
-                                            {(monthlyData.reduce((a, b) => a + b, 0) / 12).toFixed(1)}
-                                        </div>
-                                        <div className="text-xs text-slate-600">เฉลี่ย/เดือน</div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* ===== Planting Plan Panel ===== */}
                 {plantingPlan.length > 0 && (
@@ -782,6 +897,187 @@ const Dashboard = ({ data }) => {
                     </div>
                 )}
             </div>
+            {/* ===== Search Tree Modal ===== */}
+            {isSearchOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 print:hidden">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        style={{ animation: 'fadeIn 0.2s ease-out forwards' }}
+                        onClick={() => setIsSearchOpen(false)}
+                    ></div>
+
+                    {/* Modal Card */}
+                    <div
+                        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                        style={{ maxHeight: '90vh', animation: 'modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+                    >
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-6 shrink-0">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                                    <span>🔍</span> ค้นหาต้นไม้จากฐานข้อมูล
+                                </h3>
+                                <button
+                                    onClick={() => setIsSearchOpen(false)}
+                                    className="text-white hover:bg-white/20 w-8 h-8 flex items-center justify-center rounded-full transition-colors font-bold text-lg"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {/* Search Bar */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="พิมพ์ค้นหาชื่อต้นไม้ เช่น สักทอง, มะม่วง, ยางนา..."
+                                    className="w-full px-5 py-3.5 pl-12 rounded-xl border-0 text-slate-800 text-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
+                                    autoFocus
+                                />
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">🔎</span>
+                            </div>
+
+                            {/* Category Tabs */}
+                            <div className="flex gap-2 mt-3">
+                                {[
+                                    { key: 'all', label: 'ทั้งหมด', icon: '🌐' },
+                                    { key: 'economic', label: 'ไม้เศรษฐกิจ', icon: '💰' },
+                                    { key: 'edible', label: 'ไม้กินได้', icon: '🍎' },
+                                    { key: 'conservation', label: 'ไม้อนุรักษ์', icon: '🌳' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.key}
+                                        onClick={() => setSearchCategory(tab.key)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${searchCategory === tab.key
+                                            ? 'bg-white text-indigo-700 shadow-md'
+                                            : 'bg-white/20 text-white hover:bg-white/30'
+                                            }`}
+                                    >
+                                        {tab.icon} {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Modal Body — Tree Results */}
+                        <div className="p-6 overflow-y-auto bg-gradient-to-b from-slate-50 to-white flex-1">
+                            {isSearching ? (
+                                <div className="flex flex-col items-center justify-center py-16">
+                                    <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                    <p className="text-slate-500">กำลังโหลดฐานข้อมูลต้นไม้...</p>
+                                </div>
+                            ) : searchResults.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16">
+                                    <span className="text-5xl mb-4">🌱</span>
+                                    <p className="text-slate-500 text-lg">ไม่พบต้นไม้ที่ตรงกับคำค้นหา</p>
+                                    <p className="text-slate-400 text-sm mt-1">ลองพิมพ์ชื่ออื่น หรือเลือกหมวดหมู่อื่น</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-slate-500 mb-4">พบ {searchResults.length} สายพันธุ์</p>
+                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {searchResults.map((tree, idx) => {
+                                            const sci = tree.scientific_data
+                                            const isInPlan = plantingPlan.some(p => p.tree_id === `${tree.category}-${tree.tree_name}`)
+                                            return (
+                                                <div
+                                                    key={`${tree.category}-${tree.tree_name}-${idx}`}
+                                                    className={`rounded-2xl p-5 border-2 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${isInPlan
+                                                        ? 'border-eco-green-300 bg-eco-green-50/50'
+                                                        : 'border-slate-100 bg-white hover:border-indigo-200'
+                                                        }`}
+                                                >
+                                                    {isInPlan && (
+                                                        <div className="text-xs font-bold text-eco-green-600 bg-eco-green-100 px-2 py-1 rounded-full inline-block mb-2">✓ อยู่ในแผนแล้ว</div>
+                                                    )}
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="text-3xl">
+                                                            {tree.category === 'economic' ? '💰' : tree.category === 'edible' ? '🍎' : '🌳'}
+                                                        </div>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${tree.category === 'economic' ? 'bg-amber-100 text-amber-700' :
+                                                            tree.category === 'edible' ? 'bg-red-100 text-red-700' :
+                                                                'bg-emerald-100 text-emerald-700'
+                                                            }`}>
+                                                            {tree.category === 'economic' ? 'เศรษฐกิจ' : tree.category === 'edible' ? 'กินได้' : 'อนุรักษ์'}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="text-lg font-bold text-slate-800 mb-0.5">{tree.tree_name}</h4>
+                                                    <p className="text-xs text-slate-400 italic mb-2">{tree.english_name} ({tree.scientific_name})</p>
+                                                    <p className="text-xs text-slate-500 mb-3 line-clamp-2">{tree.notes}</p>
+
+                                                    {sci && (
+                                                        <div className="grid grid-cols-2 gap-2 mb-3 pt-2 border-t border-slate-100">
+                                                            <div className="text-center">
+                                                                <div className="text-sm font-bold text-eco-green-600">{Number(sci.co2_absorption_kg_per_year).toFixed(1)}</div>
+                                                                <div className="text-[9px] text-slate-500">kg CO₂/ปี</div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-sm font-bold text-purple-600">{sci.green_potential_score}</div>
+                                                                <div className="text-[9px] text-slate-500">Green Score</div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-sm font-bold text-eco-blue-600">{Number(sci.canopy_coverage_m2).toFixed(0)} m²</div>
+                                                                <div className="text-[9px] text-slate-500">ร่มเงา</div>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <div className="text-sm font-bold text-amber-600">{sci.lifespan_years} ปี</div>
+                                                                <div className="text-[9px] text-slate-500">อายุ</div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => viewSearchTreeDetails(tree)}
+                                                            className="flex-1 py-2.5 rounded-xl border border-indigo-200 text-indigo-600 font-bold text-xs hover:bg-indigo-50 transition-colors"
+                                                        >
+                                                            📊 ดูข้อมูลชิงลึก
+                                                        </button>
+                                                        <button
+                                                            onClick={() => addSearchTreeToPlan(tree)}
+                                                            className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors ${isInPlan
+                                                                ? 'bg-eco-green-100 text-eco-green-700 hover:bg-eco-green-200'
+                                                                : 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-sm hover:shadow-md'
+                                                                }`}
+                                                        >
+                                                            {isInPlan ? '➕ เพิ่มอีก 1 ต้น' : '➕ เพิ่มลงแผน'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between shrink-0">
+                            <p className="text-xs text-slate-400">ฐานข้อมูลพันธุ์ไม้ GreenLens — 15 สายพันธุ์</p>
+                            <button
+                                onClick={() => setIsSearchOpen(false)}
+                                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                            >
+                                ปิดหน้าต่าง
+                            </button>
+                        </div>
+                    </div>
+
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes modalPop {
+                            0% { opacity: 0; transform: scale(0.92) translateY(16px); }
+                            100% { opacity: 1; transform: scale(1) translateY(0); }
+                        }
+                    `}} />
+                </div>
+            )}
         </section>
     )
 }
