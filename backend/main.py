@@ -341,7 +341,7 @@ def get_region_for_province(province_name):
 
 @app.get("/")
 def read_root():
-    return {"message": "GreenLens AI — Environmental Decision Support System is running."}
+    return {"message": "TerraSense AI — Environmental Decision Support System is running."}
 
 
 @app.get("/search_trees")

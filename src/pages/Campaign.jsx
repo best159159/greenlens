@@ -287,7 +287,7 @@ export default function Campaign() {
                 {/* Header Section */}
                 <div className="text-center animate-fade-in">
                     <h1 className="text-4xl md:text-5xl font-extrabold gradient-text mb-4 font-display">
-                        GreenLens Tree Planting Campaign
+                        TerraSense Tree Planting Campaign
                     </h1>
                     <p className="text-xl text-slate-600 max-w-2xl mx-auto">
                         Track real-world tree planting efforts across the country. ร่วมกันสร้างพื้นที่สีเขียวทั่วไทย

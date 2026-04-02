@@ -65,7 +65,7 @@ const Navbar = () => {
                                 className={`text-xl font-bold transition-colors ${navStyleScrolled ? 'gradient-text' : 'text-white'
                                     }`}
                             >
-                                GreenLens AI
+                                TerraSense AI
                             </h1>
                             <p
                                 className={`text-xs ${navStyleScrolled ? 'text-slate-500' : 'text-white/80'

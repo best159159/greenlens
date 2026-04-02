@@ -21,7 +21,7 @@ const SDGSection = () => {
                         SDG Impact
                     </h2>
                     <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-                        GreenLens AI สนับสนุนเป้าหมายการพัฒนาที่ยั่งยืนขององค์การสหประชาชาติ
+                        TerraSense AI สนับสนุนเป้าหมายการพัฒนาที่ยั่งยืนขององค์การสหประชาชาติ
                     </p>
                 </div>
 

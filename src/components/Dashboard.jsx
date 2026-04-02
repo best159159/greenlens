@@ -1063,7 +1063,7 @@ const Dashboard = ({ data }) => {
 
                         {/* Modal Footer */}
                         <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between shrink-0">
-                            <p className="text-xs text-slate-400">ฐานข้อมูลพันธุ์ไม้ GreenLens — 15 สายพันธุ์</p>
+                            <p className="text-xs text-slate-400">ฐานข้อมูลพันธุ์ไม้ TerraSense — 15 สายพันธุ์</p>
                             <button
                                 onClick={() => setIsSearchOpen(false)}
                                 className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"

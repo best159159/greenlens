@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraSense AI — System Workflows</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: #18181b;
+            --surface-hover: #27272a;
+            --border: #3f3f46;
+            --text: #e4e4e7;
+            --text-dim: #a1a1aa;
+
+            --iot-primary: #10b981;
+            --iot-bg: rgba(16, 185, 129, 0.1);
+            --iot-glow: rgba(16, 185, 129, 0.15);
+
+            --manual-primary: #3b82f6;
+            --manual-bg: rgba(59, 130, 246, 0.1);
+            --manual-glow: rgba(59, 130, 246, 0.15);
+
+            --accent: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(circle at 15% 50%, var(--iot-glow), transparent 35%),
+                radial-gradient(circle at 85% 50%, var(--manual-glow), transparent 35%);
+            background-attachment: fixed;
+            padding: 60px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-dim);
+            font-size: 1.15rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15vh;
+            max-width: 900px;
+            margin: 0 auto;
+            padding-bottom: 100px;
+        }
+
+        .flow-col {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 45px 40px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .flow-col::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            border-radius: 28px 28px 0 0;
+        }
+
+        .flow-iot::before {
+            background: linear-gradient(90deg, #047857, #10b981);
+        }
+
+        .flow-manual::before {
+            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+        }
+
+        .col-title {
+            text-align: center;
+            font-size: 1.6rem;
+            margin-bottom: 50px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .flow-iot .col-title {
+            color: var(--iot-primary);
+        }
+
+        .flow-manual .col-title {
+            color: var(--manual-primary);
+        }
+
+        /* Steps Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 36px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 25px;
+            bottom: 25px;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .step {
+            position: relative;
+            margin-bottom: 45px;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-marker {
+            position: absolute;
+            left: -40px;
+            /* 36px padding + 4px center offset */
+            top: 20px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 4px solid var(--text-dim);
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .flow-iot .step-marker {
+            border-color: var(--iot-primary);
+            box-shadow: 0 0 12px var(--iot-primary);
+        }
+
+        .flow-manual .step-marker {
+            border-color: var(--manual-primary);
+            box-shadow: 0 0 12px var(--manual-primary);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 26px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-4px) scale(1.01);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .flow-iot .card:hover {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .flow-manual .card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .card-icon {
+            font-size: 1.6rem;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .card-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .card-body {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #d4d4d8;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .badge-green {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+        }
+
+        .badge-blue {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+        }
+
+        .badge-purple {
+            background: rgba(168, 85, 247, 0.1);
+            color: #c084fc;
+        }
+
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .sensor-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 12px 10px;
+            border-radius: 12px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .sensor-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sensor-item span {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        @media(max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .flow-col {
+                padding: 35px 25px;
+            }
+
+            body {
+                padding: 40px 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>TerraSense AI Operation Flow</h1>
+        <p>สถาปัตยกรรมการทำงานของระบบประเมินความอุดมสมบูรณ์ของดิน <br>เลือกการใช้งานได้ 2 โหมดตามความเหมาะสม</p>
+    </div>
+
+    <div class="container">
+
+        <!-- Mode 1: IoT Flow -->
+        <div class="flow-col flow-iot">
+            <h2 class="col-title">🌿 โหมดที่ 1: ผ่าน IoT (Robot)</h2>
+
+            <div class="timeline">
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">🤖</div>
+                            <div>
+                                <div class="card-title">Robot Vehicle</div>
+                                <div class="card-subtitle">Hardware & Sensors</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            หุ่นยนต์ขับเคลื่อนอัตโนมัติลงพื้นที่สแกนดินแบบ Real-time
+                            ดึงข้อมูลธาตุอาหารและพิกัดความแม่นยำสูง
+                            <div class="sensors-grid"
+                                style="grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));">
+                                <div class="sensor-item">🌿<span>N Sensor</span></div>
+                                <div class="sensor-item">🪨<span>P Sensor</span></div>
+                                <div class="sensor-item">💧<span>K Sensor</span></div>
+                                <!-- New Added -->
+                                <div class="sensor-item">💦<span>Moisture</span></div>
+                                <div class="sensor-item">🌡️<span>Temp</span></div>
+                                <div class="sensor-item">🧪<span>pH Level</span></div>
+                                <div class="sensor-item">⚡<span>EC Level</span></div>
+
+                                <div class="sensor-item">📍<span>GPS</span></div>
+                                <div class="sensor-item">📷<span>Camera</span></div>
+                                <div class="sensor-item">📡<span>Transmit</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">⚡</div>
+                            <div>
+                                <div class="card-title">Backend Receiver</div>
+                                <div class="card-subtitle">FastAPI Server</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            รับข้อมูล <b>NPK, pH, EC, Moisture, Temp, GPS, Image Base64</b> จากรถอัตโนมัติ<br>พร้อมระบบ
+                            Auto Reverse Geocode
+                            เพื่อแปลงละติจูด/ลองจิจูดเป็นชื่อจังหวัดทันที
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">🌦️</div>
+                            <div>
+                                <div class="card-title">Climate APIs</div>
+                                <div class="card-subtitle">Parallel Data Fetching</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge badge-blue">Open-Meteo</span> <span class="badge badge-purple">Archive
+                                Data</span><br>
+                            ดึงข้อมูลสภาพอากาศปัจจุบัน (อุณหภูมิ ความชื้น) และประวัติสภาพภูมิอากาศ 5 ปีย้อนหลัง
+                            จากตำแหน่ง GPS ตามเวลาจริง
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">🧠</div>
+                            <div>
+                                <div class="card-title">AI Engine</div>
+                                <div class="card-subtitle">OpenAI Vision (Enhanced)</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            วิเคราะห์รูปภาพพร้อมนำข้อมูล <b>NPK, pH, EC, ความชื้น และอุณหภูมิ จากเซนเซอร์จริง</b>
+                            เข้ามาคำนวณร่วมกับสภาพภูมิอากาศ
+                            เพื่อความแม่นยำระดับสูงสุด<br>
+                            <div style="margin-top: 12px;">
+                                <span class="badge badge-green">Soil Fertility Score</span>
+                                <span class="badge badge-green">Nutrient Deficiency</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">📊</div>
+                            <div>
+                                <div class="card-title">Dashboard Results</div>
+                                <div class="card-subtitle">Real-time Interface</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            แสดงผลการประเมินแบบ Dashboard อัจฉริยะ แนะนำการปรับปรุงดิน และการปลูกต้นไม้ที่เหมาะสมที่สุด
+                            พร้อมบอกระดับ NPK แบบเป๊ะ ๆ ทันที
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Mode 2: Manual Flow -->
+        <div class="flow-col flow-manual">
+            <h2 class="col-title">📍 โหมดที่ 2: ใช้ภาพและระบุแผนที่</h2>
+
+            <div class="timeline">
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">📸</div>
+                            <div>
+                                <div class="card-title">User Input</div>
+                                <div class="card-subtitle">Web Platform</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            ผู้ใช้งานอัปโหลดรูปภาพของพื้นดินด้วยตัวเอง และทำการปักหมุดระบุพิกัด (Pin Location) บนแผนที่
+                            Interactive แผนที่
+                            <div class="sensors-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                <div class="sensor-item">📷<span>อัปโหลดรูปภาพดิน</span></div>
+                                <div class="sensor-item">📍<span>ปักหมุดแผนที่ (GPS)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">🌐</div>
+                            <div>
+                                <div class="card-title">Platform Gateway</div>
+                                <div class="card-subtitle">API Endpoint</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            ระบบรับข้อมูลรูปภาพและพิกัดที่ผู้ใช้ปักหมุด ทำการแยกแยะข้อมูลและแปลงพิกัดเป็นเขต/จังหวัด
+                            สำหรับการเรียกใช้งานข้อมูลสภาพอากาศต่อไป
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">🌦️</div>
+                            <div>
+                                <div class="card-title">Climate APIs</div>
+                                <div class="card-subtitle">Parallel Data Fetching</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge badge-blue">Open-Meteo</span> <span class="badge badge-purple">Archive
+                                Data</span><br>
+                            ระบบเชื่อมต่อบริการสภาพอากาศ เพื่อดึงข้อมูลประวัติและค่าความชื้นต่างๆ จาก
+                            <b>"พิกัดที่ถูกปักหมุด"</b> อย่างแม่นยำ
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">👁️</div>
+                            <div>
+                                <div class="card-title">Vision AI Engine</div>
+                                <div class="card-subtitle">OpenAI Vision Analysis</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            ประเมินสภาพของดิน<b>จากรูปภาพ (Visual Inspection)</b> เพียงอย่างเดียว ร่วมกับบริบทภูมิอากาศ
+                            (ไม่ใช้เซนเซอร์ฮาร์ดแวร์ NPK)<br>
+                            <div style="margin-top: 12px;">
+                                <span class="badge badge-blue">Estimated Soil Type</span>
+                                <span class="badge badge-blue">Visual Surface Context</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-marker"></div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">📈</div>
+                            <div>
+                                <div class="card-title">Analysis Interface</div>
+                                <div class="card-subtitle">User Dashboard</div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            แสดงผลการวิเคราะห์ให้ผู้ใช้งานทราบ ถึงความเป็นไปได้และข้อควรระวังของหน้าดิน
+                            พร้อมแนะนำต้นไม้ที่เหมาะสมโดยอ้างอิงจากลักษณะทางกายภาพที่มองเห็น
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

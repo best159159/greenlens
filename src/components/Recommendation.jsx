@@ -116,7 +116,7 @@ const Recommendation = ({ data }) => {
                             onClick={() => {
                                 if (navigator.share) {
                                     navigator.share({
-                                        title: 'GreenLens AI Analysis',
+                                        title: 'TerraSense AI Analysis',
                                         text: `ดูผลวิเคราะห์ที่ดินของฉัน! ภาพรวม: ${climate_context_summary || ''}`,
                                         url: window.location.href
                                     }).catch(console.error);

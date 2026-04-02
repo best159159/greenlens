@@ -9,7 +9,7 @@ const Footer = () => {
                     <div>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="text-4xl">🌱</div>
-                            <h3 className="text-2xl font-bold">GreenLens AI</h3>
+                            <h3 className="text-2xl font-bold">TerraSense AI</h3>
                         </div>
                         <p className="text-slate-300 leading-relaxed mb-4">
                             แพลตฟอร์มวิเคราะห์พื้นที่ด้วย AI เพื่อส่งเสริมการฟื้นฟูสิ่งแวดล้อม
@@ -69,10 +69,10 @@ const Footer = () => {
                                 <div>
                                     <p className="font-medium text-white">Email</p>
                                     <a
-                                        href="mailto:contact@greenlens.ai"
+                                        href="mailto:contact@terrasense.ai"
                                         className="hover:text-eco-green-400 transition-colors"
                                     >
-                                        contact@greenlens.ai
+                                        contact@terrasense.ai
                                     </a>
                                 </div>
                             </div>
@@ -121,7 +121,7 @@ const Footer = () => {
                 {/* Bottom */}
                 <div className="border-t border-slate-700 pt-8 text-center text-slate-400 text-sm">
                     <p>
-                        © {currentYear} GreenLens AI. All rights reserved. •{' '}
+                        © {currentYear} TerraSense AI. All rights reserved. •{' '}
                         <a href="#" className="hover:text-eco-green-400 transition-colors">
                             Privacy Policy
                         </a>{' '}

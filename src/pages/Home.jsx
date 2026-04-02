@@ -9,7 +9,7 @@ export default function Home() {
             <div className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
                 <div className="max-w-4xl mx-auto text-center">
                     <h2 className="text-4xl font-bold gradient-text mb-4">
-                        ทำไมต้อง GreenLens AI?
+                        ทำไมต้อง TerraSense AI?
                     </h2>
                     <p className="text-slate-600 text-lg mb-12">
                         เทคโนโลยี AI ที่ช่วยให้คุณสร้างผลกระทบด้านสิ่งแวดล้อมได้อย่างมีประสิทธิภาพ

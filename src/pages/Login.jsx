@@ -28,7 +28,7 @@ export default function Login() {
                 <div>
                     <div className="flex justify-center text-6xl mb-4">🌱</div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
-                        GreenLens AI
+                        TerraSense AI
                     </h2>
                     <p className="mt-2 text-center text-sm text-slate-600">
                         แพลตฟอร์มเทคโนโลยีสิ่งแวดล้อม
