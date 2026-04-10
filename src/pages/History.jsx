@@ -12,7 +12,10 @@ export default function History() {
 
     useEffect(() => {
         const fetchHistory = async () => {
-            if (!currentUser) return
+            if (!currentUser) {
+                setLoading(false)
+                return
+            }
             try {
                 const q = query(
                     collection(db, 'analyses'),
