@@ -1,10 +1,25 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { db, storage } from '../firebase'
+import { db } from '../firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import UploadSection from '../components/UploadSection'
+
+// Compress image and return base64 string (~100-200KB)
+const compressImage = (file, maxWidth = 800, quality = 0.72) => {
+    return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+            const ratio = Math.min(1, maxWidth / img.width, maxWidth / img.height)
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.round(img.width * ratio)
+            canvas.height = Math.round(img.height * ratio)
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+            resolve(canvas.toDataURL('image/jpeg', quality))
+        }
+        img.src = URL.createObjectURL(file)
+    })
+}
 
 export default function Analyze() {
     const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -38,17 +53,22 @@ export default function Analyze() {
 
             const result = await response.json()
 
-            // After receiving backend analysis, upload image to firebase storage
+            // Compress image and store as base64 (bypasses Firebase Storage permission issues)
             let image_url = ''
             try {
-                const storageRef = ref(storage, `analyses/${currentUser.uid}/${Date.now()}_${imageFile.name}`)
-                const snapshot = await uploadBytes(storageRef, imageFile)
-                image_url = await getDownloadURL(snapshot.ref)
+                image_url = await compressImage(imageFile)
+                console.log('[Image] compressed size:', Math.round(image_url.length / 1024), 'KB')
             } catch (err) {
-                console.warn("Storage upload failed, skipping map url", err)
+                console.error("Image compression failed:", err)
+                alert('compress รูปไม่สำเร็จ: ' + err.message)
+            }
+
+            if (!image_url) {
+                alert('⚠️ ไม่สามารถบีบอัดรูปได้ — รูปจะไม่ถูกบันทึก')
             }
 
             // Save result to Firestore
+            console.log('[Firestore] saving image_url length:', image_url.length)
             await addDoc(collection(db, 'analyses'), {
                 userId: currentUser.uid,
                 image_url,

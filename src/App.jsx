@@ -10,6 +10,7 @@ import Analyze from './pages/Analyze'
 import DashboardPage from './pages/DashboardPage' // Actually acting as ResultPage, URL changed to /result
 import History from './pages/History'
 import Campaign from './pages/Campaign'
+import FirebaseTest from './pages/FirebaseTest'
 
 function App() {
     return (
@@ -43,6 +44,9 @@ function App() {
                                 <Campaign />
                             </ProtectedRoute>
                         } />
+
+                        {/* Firebase Diagnostic (dev only) */}
+                        <Route path="/firebase-test" element={<FirebaseTest />} />
 
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" replace />} />
